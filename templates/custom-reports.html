@@ -1,0 +1,605 @@
+{% extends "base.html" %}
+
+{% block title %}Custom Reports - AI Analytics{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <!-- Header -->
+    <div class="mb-8">
+        <div class="flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">Custom Reports</h1>
+                <p class="text-gray-600 dark:text-gray-400">Create and manage custom analytics reports</p>
+            </div>
+            <button onclick="openCreateReportModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-colors">
+                <i class="fas fa-plus mr-2"></i>New Report
+            </button>
+        </div>
+    </div>
+
+    <!-- Reports Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="reportsGrid">
+        <!-- Reports will be loaded here -->
+    </div>
+
+    <!-- Loading State -->
+    <div id="reportsLoading" class="text-center py-12">
+        <div class="loading-spinner mx-auto mb-4"></div>
+        <p class="text-gray-600 dark:text-gray-400">Loading reports...</p>
+    </div>
+
+    <!-- Empty State (hidden by default) -->
+    <div id="reportsEmpty" class="hidden col-span-3 text-center py-12">
+        <i class="fas fa-chart-bar text-4xl text-gray-400 mb-4"></i>
+        <p class="text-gray-600 dark:text-gray-400">No custom reports created</p>
+        <p class="text-sm text-gray-500 dark:text-gray-500 mt-2">Create your first report to start tracking custom metrics</p>
+    </div>
+</div>
+
+<!-- Create Report Modal -->
+<div id="reportModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+    <div class="bg-white dark:bg-gray-800 rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Create Custom Report</h3>
+        </div>
+
+        <form id="reportForm" class="p-6 space-y-4">
+            <div>
+                <label for="reportName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Report Name *</label>
+                <input type="text" id="reportName" name="reportName" required
+                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                       placeholder="Weekly Performance Report">
+            </div>
+
+            <div>
+                <label for="reportDescription" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Description</label>
+                <textarea id="reportDescription" name="reportDescription" rows="3"
+                          class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                          placeholder="Describe what this report will show..."></textarea>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Metrics to Include</label>
+                <div class="space-y-2">
+                    <label class="inline-flex items-center">
+                        <input type="checkbox" name="metrics" value="dau" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" checked>
+                        <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">Daily Active Users</span>
+                    </label>
+                    <label class="inline-flex items-center">
+                        <input type="checkbox" name="metrics" value="mau" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" checked>
+                        <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">Monthly Active Users</span>
+                    </label>
+                    <label class="inline-flex items-center">
+                        <input type="checkbox" name="metrics" value="retention" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                        <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">Retention Rate</span>
+                    </label>
+                    <label class="inline-flex items-center">
+                        <input type="checkbox" name="metrics" value="conversion" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                        <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">Conversion Rate</span>
+                    </label>
+                    <label class="inline-flex items-center">
+                        <input type="checkbox" name="metrics" value="revenue" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                        <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">Revenue</span>
+                    </label>
+                </div>
+            </div>
+
+            <div>
+                <label for="chartType" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Chart Type</label>
+                <select id="chartType" name="chartType" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                    <option value="line">Line Chart</option>
+                    <option value="bar">Bar Chart</option>
+                    <option value="pie">Pie Chart</option>
+                    <option value="area">Area Chart</option>
+                </select>
+            </div>
+
+            <div>
+                <label for="reportTimeRange" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Time Range</label>
+                <select id="reportTimeRange" name="reportTimeRange" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                    <option value="7d">Last 7 days</option>
+                    <option value="30d" selected>Last 30 days</option>
+                    <option value="90d">Last 90 days</option>
+                </select>
+            </div>
+        </form>
+
+        <div class="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end space-x-3">
+            <button type="button" onclick="closeReportModal()" class="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors">
+                Cancel
+            </button>
+            <button type="button" onclick="saveReport()" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
+                Create Report
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Report Detail Modal -->
+<div id="reportDetailModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+    <div class="bg-white dark:bg-gray-800 rounded-lg w-full max-w-6xl max-h-[95vh] overflow-y-auto">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+            <h3 class="text-xl font-semibold text-gray-900 dark:text-white" id="reportDetailTitle">Report Details</h3>
+            <button onclick="closeReportDetailModal()" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+
+        <div class="p-6">
+            <!-- Report Header -->
+            <div class="mb-6">
+                <h2 class="text-2xl font-bold text-gray-900 dark:text-white" id="reportDetailName"></h2>
+                <p class="text-gray-600 dark:text-gray-400 mt-2" id="reportDetailDescription"></p>
+                <div class="flex flex-wrap gap-4 mt-4 text-sm text-gray-500 dark:text-gray-400">
+                    <div><strong>Chart Type:</strong> <span id="reportDetailChartType" class="capitalize"></span></div>
+                    <div><strong>Time Range:</strong> <span id="reportDetailTimeRange"></span></div>
+                    <div><strong>Created:</strong> <span id="reportDetailCreated"></span></div>
+                </div>
+            </div>
+
+            <!-- Charts Container -->
+            <div id="reportChartsContainer" class="space-y-8">
+                <!-- Charts will be dynamically inserted here -->
+            </div>
+
+            <!-- Metrics Summary -->
+            <div class="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4" id="metricsSummary">
+                <!-- Metrics summary will be dynamically inserted here -->
+            </div>
+        </div>
+
+        <div class="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end">
+            <button onclick="closeReportDetailModal()" class="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors">
+                Close
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- Include Chart.js for visualization -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    // Global variable to store reports
+    let allReports = [];
+    let nextReportId = 3;
+    let chartInstances = []; // To store chart instances for cleanup
+
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeReports();
+        loadReports();
+    });
+
+    function initializeReports() {
+        // Check if we need to initialize with sample data
+        const savedReports = localStorage.getItem('customReports');
+        if (!savedReports) {
+            const sampleReports = [
+                {
+                    id: 1,
+                    name: "Weekly Performance",
+                    description: "Weekly user engagement metrics and performance indicators",
+                    chart_type: "line",
+                    metrics: ["dau", "mau", "retention"],
+                    filters: { time_range: "7d" },
+                    created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
+                },
+                {
+                    id: 2,
+                    name: "Revenue Analysis",
+                    description: "Monthly revenue and conversion tracking with growth metrics",
+                    chart_type: "bar",
+                    metrics: ["revenue", "conversion"],
+                    filters: { time_range: "30d" },
+                    created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString()
+                }
+            ];
+            localStorage.setItem('customReports', JSON.stringify(sampleReports));
+        }
+    }
+
+    async function loadReports() {
+        const loadingElement = document.getElementById('reportsLoading');
+        const emptyElement = document.getElementById('reportsEmpty');
+
+        try {
+            loadingElement.classList.remove('hidden');
+            emptyElement.classList.add('hidden');
+
+            const savedReports = localStorage.getItem('customReports');
+            if (savedReports) {
+                allReports = JSON.parse(savedReports);
+                // Find the highest ID to continue from
+                const maxId = Math.max(...allReports.map(r => r.id));
+                nextReportId = maxId + 1;
+            }
+
+            renderReports(allReports);
+
+        } catch (error) {
+            console.error('Error loading reports:', error);
+            showToast('Failed to load reports', 'error');
+        } finally {
+            loadingElement.classList.add('hidden');
+        }
+    }
+
+    function renderReports(reports) {
+        const container = document.getElementById('reportsGrid');
+        const emptyElement = document.getElementById('reportsEmpty');
+
+        if (!reports || reports.length === 0) {
+            container.innerHTML = '';
+            emptyElement.classList.remove('hidden');
+            return;
+        }
+
+        emptyElement.classList.add('hidden');
+        container.innerHTML = reports.map(report => `
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 hover:shadow-lg transition-shadow cursor-pointer" onclick="viewReport(${report.id})">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
+                        <i class="fas fa-chart-${getChartIcon(report.chart_type)} text-blue-600 dark:text-blue-400"></i>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-sm text-gray-500 dark:text-gray-400">
+                            ${getRelativeTime(report.created_at)}
+                        </div>
+                    </div>
+                </div>
+
+                <h3 class="font-semibold text-gray-900 dark:text-white mb-2">${report.name}</h3>
+                <p class="text-gray-600 dark:text-gray-400 text-sm mb-4 line-clamp-2">
+                    ${report.description || 'No description provided'}
+                </p>
+
+                <div class="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
+                    <span>${report.metrics.length} metrics</span>
+                    <span class="capitalize">${report.chart_type} chart</span>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function getChartIcon(chartType) {
+        const icons = {
+            line: 'line',
+            bar: 'bar',
+            pie: 'pie',
+            area: 'area'
+        };
+        return icons[chartType] || 'bar';
+    }
+
+    function getRelativeTime(dateString) {
+        const date = new Date(dateString);
+        const now = new Date();
+        const diffInDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
+
+        if (diffInDays === 0) return 'Today';
+        if (diffInDays === 1) return 'Yesterday';
+        if (diffInDays < 7) return `${diffInDays} days ago`;
+        if (diffInDays < 30) return `${Math.floor(diffInDays / 7)} weeks ago`;
+        return `${Math.floor(diffInDays / 30)} months ago`;
+    }
+
+    function openCreateReportModal() {
+        document.getElementById('reportForm').reset();
+        document.getElementById('reportModal').classList.remove('hidden');
+        document.getElementById('reportName').focus();
+    }
+
+    function closeReportModal() {
+        document.getElementById('reportModal').classList.add('hidden');
+    }
+
+    async function saveReport() {
+        const reportName = document.getElementById('reportName').value.trim();
+        const reportDescription = document.getElementById('reportDescription').value.trim();
+        const chartType = document.getElementById('chartType').value;
+        const timeRange = document.getElementById('reportTimeRange').value;
+
+        const metricCheckboxes = document.querySelectorAll('input[name="metrics"]:checked');
+        const metrics = Array.from(metricCheckboxes).map(checkbox => checkbox.value);
+
+        if (!reportName) {
+            showToast('Please enter a report name', 'error');
+            document.getElementById('reportName').focus();
+            return;
+        }
+
+        if (metrics.length === 0) {
+            showToast('Please select at least one metric', 'error');
+            return;
+        }
+
+        const newReport = {
+            id: nextReportId++,
+            name: reportName,
+            description: reportDescription,
+            metrics: metrics,
+            chart_type: chartType,
+            filters: {
+                time_range: timeRange
+            },
+            created_at: new Date().toISOString()
+        };
+
+        try {
+            allReports.unshift(newReport);
+            localStorage.setItem('customReports', JSON.stringify(allReports));
+
+            showToast('Report created successfully!', 'success');
+            closeReportModal();
+            renderReports(allReports);
+
+        } catch (error) {
+            console.error('Error creating report:', error);
+            showToast('Failed to create report', 'error');
+        }
+    }
+
+    function viewReport(reportId) {
+        const report = allReports.find(r => r.id === reportId);
+
+        if (!report) {
+            showToast('Report not found', 'error');
+            return;
+        }
+
+        // Set report details in modal
+        document.getElementById('reportDetailTitle').textContent = report.name;
+        document.getElementById('reportDetailName').textContent = report.name;
+        document.getElementById('reportDetailDescription').textContent = report.description || 'No description provided';
+        document.getElementById('reportDetailChartType').textContent = report.chart_type;
+        document.getElementById('reportDetailTimeRange').textContent = getTimeRangeLabel(report.filters.time_range);
+        document.getElementById('reportDetailCreated').textContent = new Date(report.created_at).toLocaleDateString();
+
+        // Generate charts
+        generateReportCharts(report);
+
+        // Show the modal
+        document.getElementById('reportDetailModal').classList.remove('hidden');
+    }
+
+    function closeReportDetailModal() {
+        // Destroy all chart instances to free memory
+        chartInstances.forEach(chart => {
+            if (chart && typeof chart.destroy === 'function') {
+                chart.destroy();
+            }
+        });
+        chartInstances = [];
+
+        document.getElementById('reportDetailModal').classList.add('hidden');
+    }
+
+    function generateReportCharts(report) {
+        const container = document.getElementById('reportChartsContainer');
+        const metricsSummary = document.getElementById('metricsSummary');
+
+        // Clear previous content
+        container.innerHTML = '';
+        metricsSummary.innerHTML = '';
+
+        // Generate sample data based on metrics
+        const timeRange = report.filters.time_range;
+        const days = timeRange === '7d' ? 7 : timeRange === '30d' ? 30 : 90;
+
+        const labels = generateLabels(days);
+
+        // Create chart for each metric
+        report.metrics.forEach((metric, index) => {
+            const chartData = generateChartData(metric, labels, report.chart_type);
+
+            const chartCard = document.createElement('div');
+            chartCard.className = 'bg-gray-50 dark:bg-gray-900 rounded-lg p-6';
+            chartCard.innerHTML = `
+                <h4 class="text-lg font-semibold text-gray-900 dark:text-white mb-4 capitalize">${getMetricLabel(metric)}</h4>
+                <div class="chart-container" style="position: relative; height: 300px;">
+                    <canvas id="chart-${report.id}-${metric}"></canvas>
+                </div>
+            `;
+            container.appendChild(chartCard);
+
+            // Create chart after DOM is updated
+            setTimeout(() => {
+                const ctx = document.getElementById(`chart-${report.id}-${metric}`).getContext('2d');
+                const chart = new Chart(ctx, {
+                    type: report.chart_type,
+                    data: chartData,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top',
+                            },
+                            title: {
+                                display: true,
+                                text: `${getMetricLabel(metric)} Trend`
+                            }
+                        },
+                        scales: report.chart_type !== 'pie' ? {
+                            x: {
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.1)'
+                                }
+                            },
+                            y: {
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.1)'
+                                },
+                                beginAtZero: true
+                            }
+                        } : {}
+                    }
+                });
+                chartInstances.push(chart);
+            }, 100);
+        });
+
+        // Generate metrics summary
+        report.metrics.forEach(metric => {
+            const summaryValue = generateSummaryValue(metric);
+            const summaryCard = document.createElement('div');
+            summaryCard.className = 'bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700';
+            summaryCard.innerHTML = `
+                <div class="text-sm text-gray-500 dark:text-gray-400 capitalize">${getMetricLabel(metric)}</div>
+                <div class="text-2xl font-bold text-gray-900 dark:text-white mt-2">${summaryValue}</div>
+                <div class="text-xs text-green-500 mt-1">
+                    <i class="fas fa-arrow-up mr-1"></i>+${Math.floor(Math.random() * 15) + 5}%
+                </div>
+            `;
+            metricsSummary.appendChild(summaryCard);
+        });
+    }
+
+    function generateLabels(days) {
+        const labels = [];
+        const now = new Date();
+        for (let i = days - 1; i >= 0; i--) {
+            const date = new Date(now);
+            date.setDate(date.getDate() - i);
+            labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+        }
+        return labels;
+    }
+
+    function generateChartData(metric, labels, chartType) {
+        const baseValues = {
+            dau: [1200, 1250, 1180, 1320, 1400, 1350, 1280, 1420, 1380, 1450, 1500, 1480, 1420, 1380, 1350, 1400, 1450, 1500, 1550, 1520, 1480, 1450, 1500, 1550, 1600, 1580, 1550, 1520, 1500, 1480],
+            mau: [35000, 35500, 35200, 35800, 36200, 36500, 36800, 37200, 37500, 37800, 38200, 38500, 38800, 39200, 39500, 39800, 40200, 40500, 40800, 41200, 41500, 41800, 42200, 42500, 42800, 43200, 43500, 43800, 44200, 44500],
+            retention: [45, 46, 44, 47, 48, 46, 45, 49, 48, 47, 50, 49, 48, 51, 50, 49, 52, 51, 50, 53, 52, 51, 54, 53, 52, 55, 54, 53, 56, 55],
+            conversion: [3.2, 3.4, 3.1, 3.5, 3.6, 3.3, 3.2, 3.7, 3.6, 3.5, 3.8, 3.7, 3.6, 3.9, 3.8, 3.7, 4.0, 3.9, 3.8, 4.1, 4.0, 3.9, 4.2, 4.1, 4.0, 4.3, 4.2, 4.1, 4.4, 4.3],
+            revenue: [12500, 12800, 12200, 13100, 13500, 13000, 12700, 13800, 13400, 14000, 14500, 14200, 13800, 13400, 13000, 13500, 14000, 14500, 15000, 14700, 14300, 14000, 14500, 15000, 15500, 15300, 15000, 14700, 14500, 14300]
+        };
+
+        const colors = {
+            dau: 'rgba(59, 130, 246, 0.8)',
+            mau: 'rgba(16, 185, 129, 0.8)',
+            retention: 'rgba(245, 158, 11, 0.8)',
+            conversion: 'rgba(139, 92, 246, 0.8)',
+            revenue: 'rgba(239, 68, 68, 0.8)'
+        };
+
+        const baseData = baseValues[metric] || baseValues.dau;
+        const data = baseData.slice(-labels.length);
+
+        if (chartType === 'pie') {
+            return {
+                labels: labels,
+                datasets: [{
+                    data: data,
+                    backgroundColor: [
+                        'rgba(59, 130, 246, 0.8)',
+                        'rgba(16, 185, 129, 0.8)',
+                        'rgba(245, 158, 11, 0.8)',
+                        'rgba(139, 92, 246, 0.8)',
+                        'rgba(239, 68, 68, 0.8)'
+                    ],
+                    borderWidth: 2,
+                    borderColor: 'white'
+                }]
+            };
+        }
+
+        return {
+            labels: labels,
+            datasets: [{
+                label: getMetricLabel(metric),
+                data: data,
+                backgroundColor: chartType === 'bar' ? colors[metric] : 'transparent',
+                borderColor: colors[metric],
+                borderWidth: 3,
+                fill: chartType === 'area',
+                tension: 0.4
+            }]
+        };
+    }
+
+    function generateSummaryValue(metric) {
+        const formats = {
+            dau: (v) => v.toLocaleString(),
+            mau: (v) => (v / 1000).toFixed(1) + 'K',
+            retention: (v) => v + '%',
+            conversion: (v) => v + '%',
+            revenue: (v) => '$' + (v / 1000).toFixed(1) + 'K'
+        };
+
+        const baseValue = {
+            dau: 1520,
+            mau: 42800,
+            retention: 52,
+            conversion: 4.0,
+            revenue: 15300
+        };
+
+        return formats[metric] ? formats[metric](baseValue[metric]) : baseValue[metric];
+    }
+
+    function getMetricLabel(metric) {
+        const labels = {
+            dau: 'Daily Active Users',
+            mau: 'Monthly Active Users',
+            retention: 'Retention Rate',
+            conversion: 'Conversion Rate',
+            revenue: 'Revenue'
+        };
+        return labels[metric] || metric;
+    }
+
+    function getTimeRangeLabel(timeRange) {
+        const labels = {
+            '7d': 'Last 7 Days',
+            '30d': 'Last 30 Days',
+            '90d': 'Last 90 Days'
+        };
+        return labels[timeRange] || timeRange;
+    }
+
+    function showToast(message, type = 'info') {
+        const toast = document.createElement('div');
+        toast.className = `fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg transition-all duration-300 transform translate-x-0 ${
+            type === 'success' ? 'bg-green-500 text-white' :
+            type === 'error' ? 'bg-red-500 text-white' :
+            'bg-blue-500 text-white'
+        }`;
+        toast.textContent = message;
+
+        document.body.appendChild(toast);
+
+        setTimeout(() => {
+            toast.style.transform = 'translateX(100%)';
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.parentNode.removeChild(toast);
+                }
+            }, 300);
+        }, 3000);
+    }
+
+    // Close modals when clicking outside
+    document.addEventListener('click', function(event) {
+        const reportModal = document.getElementById('reportModal');
+        const reportDetailModal = document.getElementById('reportDetailModal');
+
+        if (event.target === reportModal) {
+            closeReportModal();
+        }
+        if (event.target === reportDetailModal) {
+            closeReportDetailModal();
+        }
+    });
+
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            closeReportModal();
+            closeReportDetailModal();
+        }
+    });
+</script>
+{% endblock %}

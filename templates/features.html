@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Features - AI Analytics Dashboard</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #10b981;
+            --accent: #f59e0b;
+            --danger: #ef4444;
+            --background: #0f172a;
+            --surface: #1e293b;
+            --surface-light: #334155;
+            --text: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: #475569;
+            --shadow: rgba(0, 0, 0, 0.3);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--background);
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        .dashboard-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 260px;
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+        }
+
+        .sidebar-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        .logo i {
+            color: var(--primary);
+        }
+
+        .sidebar-nav {
+            padding: 1rem 0;
+        }
+
+        .nav-section {
+            margin-bottom: 1rem;
+        }
+
+        .nav-section h3 {
+            padding: 0.5rem 1.5rem;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            letter-spacing: 0.5px;
+        }
+
+        .nav-links {
+            list-style: none;
+        }
+
+        .nav-links a {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1.5rem;
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: all 0.3s;
+            border-left: 3px solid transparent;
+        }
+
+        .nav-links a:hover,
+        .nav-links a.active {
+            background: var(--surface-light);
+            color: var(--text);
+            border-left-color: var(--primary);
+        }
+
+        .nav-links a i {
+            width: 20px;
+            text-align: center;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            margin-left: 260px;
+            padding: 2rem;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        /* Hero Section */
+        .features-hero {
+            text-align: center;
+            padding: 3rem 0;
+            margin-bottom: 3rem;
+        }
+
+        .features-hero h1 {
+            font-size: 3.5rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .features-hero p {
+            font-size: 1.25rem;
+            color: var(--text-muted);
+            max-width: 600px;
+            margin: 0 auto 2rem;
+        }
+
+        /* Features Grid */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2rem;
+            margin-bottom: 4rem;
+        }
+
+        .feature-category {
+            margin-bottom: 3rem;
+        }
+
+        .category-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--primary);
+        }
+
+        .category-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            background: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
+        }
+
+        .category-title {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        .feature-card {
+            background: var(--surface);
+            padding: 2rem;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            transition: all 0.3s;
+            height: 100%;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px var(--shadow);
+        }
+
+        .feature-header {
+            display: flex;
+            align-items: start;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .feature-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 10px;
+            background: rgba(99, 102, 241, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary);
+            font-size: 1.25rem;
+            flex-shrink: 0;
+        }
+
+        .feature-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .feature-description {
+            color: var(--text-muted);
+            margin-bottom: 1.5rem;
+        }
+
+        .feature-highlights {
+            list-style: none;
+            margin-bottom: 1.5rem;
+        }
+
+        .feature-highlights li {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+            color: var(--text-muted);
+        }
+
+        .feature-highlights li i {
+            color: var(--secondary);
+            font-size: 0.875rem;
+        }
+
+        .feature-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text);
+        }
+
+        .btn-outline:hover {
+            background: var(--surface-light);
+        }
+
+        /* Comparison Table */
+        .comparison-section {
+            margin: 4rem 0;
+        }
+
+        .comparison-table {
+            background: var(--surface);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+        }
+
+        .table-header {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            background: var(--surface-light);
+            padding: 1.5rem;
+            font-weight: 600;
+        }
+
+        .table-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border);
+            align-items: center;
+        }
+
+        .table-row:last-child {
+            border-bottom: none;
+        }
+
+        .feature-name {
+            font-weight: 600;
+        }
+
+        .availability {
+            text-align: center;
+        }
+
+        .available {
+            color: var(--secondary);
+        }
+
+        .not-available {
+            color: var(--text-muted);
+        }
+
+        /* CTA Section */
+        .cta-section {
+            background: linear-gradient(135deg, var(--surface) 0%, var(--background) 100%);
+            padding: 4rem 2rem;
+            border-radius: 12px;
+            text-align: center;
+            margin: 4rem 0;
+        }
+
+        .cta-section h2 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .cta-section p {
+            color: var(--text-muted);
+            font-size: 1.125rem;
+            max-width: 600px;
+            margin: 0 auto 2rem;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .table-header,
+            .table-row {
+                grid-template-columns: 1fr 1fr 1fr;
+            }
+
+            .table-header div:first-child,
+            .table-row .feature-name {
+                display: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .sidebar.active {
+                transform: translateX(0);
+            }
+
+            .features-hero h1 {
+                font-size: 2.5rem;
+            }
+
+            .cta-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fas fa-chart-network"></i>
+                    <span>AI Analytics</span>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <h3>Main</h3>
+                    <ul class="nav-links">
+                        <li><a href="/">
+                            <i class="fas fa-home"></i>
+                            Home
+                        </a></li>
+                        <li><a href="/dashboard">
+                            <i class="fas fa-tachometer-alt"></i>
+                            Dashboard
+                        </a></li>
+                        <li><a href="/features" class="active">
+                            <i class="fas fa-star"></i>
+                            Features
+                        </a></li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <h3>Analytics</h3>
+                    <ul class="nav-links">
+                        <li><a href="/cohort-analysis">
+                            <i class="fas fa-users"></i>
+                            Cohort Analysis
+                        </a></li>
+                        <li><a href="/funnel-analysis">
+                            <i class="fas fa-filter"></i>
+                            Funnel Analysis
+                        </a></li>
+                        <li><a href="/ab-testing">
+                            <i class="fas fa-vial"></i>
+                            A/B Testing
+                        </a></li>
+                        <li><a href="/anomaly-detection">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            Anomaly Detection
+                        </a></li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <h3>Management</h3>
+                    <ul class="nav-links">
+                        <li><a href="/ice-framework">
+                            <i class="fas fa-bullseye"></i>
+                            ICE Framework
+                        </a></li>
+                        <li><a href="/user-management">
+                            <i class="fas fa-users-cog"></i>
+                            User Management
+                        </a></li>
+                        <li><a href="/real-data-config">
+                            <i class="fas fa-database"></i>
+                            Data Sources
+                        </a></li>
+                        <li><a href="/data-export">
+                            <i class="fas fa-download"></i>
+                            Data Export
+                        </a></li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <h3>Integrations</h3>
+                    <ul class="nav-links">
+                        <li><a href="/notion-integration">
+                            <i class="fas fa-sticky-note"></i>
+                            Notion Sync
+                        </a></li>
+                        <li><a href="/custom-reports">
+                            <i class="fas fa-chart-pie"></i>
+                            Custom Reports
+                        </a></li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <h3>Account</h3>
+                    <ul class="nav-links">
+                        <li><a href="/profile">
+                            <i class="fas fa-user"></i>
+                            Profile
+                        </a></li>
+                        <li><a href="/user-history">
+                            <i class="fas fa-history"></i>
+                            Activity History
+                        </a></li>
+                        <li><a href="/help">
+                            <i class="fas fa-life-ring"></i>
+                            Help & Docs
+                        </a></li>
+                    </ul>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Hero Section -->
+            <section class="features-hero">
+                <h1>Powerful Analytics Features</h1>
+                <p>Discover how our AI-powered analytics platform can transform your data into actionable insights and drive business growth.</p>
+                <div class="cta-buttons">
+                    <a href="/signup" class="btn btn-primary">
+                        <i class="fas fa-rocket"></i> Start Free Trial
+                    </a>
+                    <a href="/dashboard" class="btn btn-outline">
+                        <i class="fas fa-eye"></i> Live Demo
+                    </a>
+                </div>
+            </section>
+
+            <!-- Core Analytics Features -->
+            <section class="feature-category">
+                <div class="category-header">
+                    <div class="category-icon">
+                        <i class="fas fa-chart-bar"></i>
+                    </div>
+                    <h2 class="category-title">Core Analytics</h2>
+                </div>
+
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-header">
+                            <div class="feature-icon">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <div>
+                                <h3 class="feature-title">Cohort Analysis</h3>
+                                <p class="feature-description">
+                                    Track user behavior over time with detailed cohort analysis to understand retention and engagement patterns.
+                                </p>
+                            </div>
+                        </div>
+                        <ul class="feature-highlights">
+                            <li><i class="fas fa-check"></i> Weekly, monthly, and quarterly cohorts</li>
+                            <li><i class="fas fa-check"></i> Retention rate tracking</li>
+                            <li><i class="fas fa-check"></i> Behavioral segmentation</li>
+                            <li><i class="fas fa-check"></i> Custom cohort definitions</li>
+                        </ul>
+                        <div class="feature-actions">
+                            <a href="/cohort-analysis" class="btn btn-primary">Explore Feature</a>
+                            <a href="/help#cohort-analysis" class="btn btn-outline">Learn More</a>
+                        </div>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="feature-header">
+                            <div class="feature-icon">
+                                <i class="fas fa-filter"></i>
+                            </div>
+                            <div>
+                                <h3 class="feature-title">Funnel Analysis</h3>
+                                <p class="feature-description">
+                                    Identify drop-off points in user journeys and optimize conversion paths with detailed funnel visualization.
+                                </p>
+                            </div>
+                        </div>
+                        <ul class="feature-highlights">
+                            <li><i class="fas fa-check"></i> Multi-stage funnel tracking</li>
+                            <li><i class="fas fa-check"></i> Drop-off point identification</li>
+                            <li><i class="fas fa-check"></i> Conversion optimization tips</li>
+                            <li><i class="fas fa-check"></i> Real-time funnel monitoring</li>
+                        </ul>
+                        <div class="feature-actions">
+                            <a href="/funnel-analysis" class="btn btn-primary">Explore Feature</a>
+                            <a href="/help#funnel-analysis" class="btn btn-outline">Learn More</a>
+                        </div>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="feature-header">
+                            <div class="feature-icon">
+                                <i class="fas fa-vial"></i>
+                            </div>
+                            <div>
+                                <h3 class="feature-title">A/B Testing Platform</h3>
+                                <p class="feature-description">
+                                    Run experiments with statistical significance testing to optimize user experiences and drive conversions.
+                                </p>
+                            </div>
+                        </div>
+                        <ul class="feature-highlights">
+                            <li><i class="fas fa-check"></i> Multi-variant testing</li>
+                            <li><i class="fas fa-check"></i> Statistical significance calculator</li>
+                            <li><i class="fas fa-check"></i> Real-time results dashboard</li>
+                            <li><i class="fas fa-check"></i> Automated winner selection</li>
+                        </ul>
+                        <div class="feature-actions">
+                            <a href="/ab-testing" class="btn btn-primary">Explore Feature</a>
+                            <a href="/help#ab-testing" class="btn btn-outline">Learn More</a>
+                        </div>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="feature-header">
+                            <div class="feature-icon">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </div>
+                            <div>
+                                <h3 class="feature-title">Anomaly Detection</h3>
+                                <p class="feature-description">
+                                    Automatically detect unusual patterns and outliers in your data with machine learning algorithms.
+                                </p>
+                            </div>
+                        </div>
+                        <ul class="feature-highlights">
+                            <li><i class="fas fa-check"></i> Real-time anomaly alerts</li>
+                            <li><i class="fas fa-check"></i> Machine learning detection</li>
+                            <li><i class="fas fa-check"></i> Custom sensitivity settings</li>
+                            <li><i class="fas fa-check"></i> Root cause analysis</li>
+                        </ul>
+                        <div class="feature-actions">
+                            <a href="/anomaly-detection" class="btn btn-primary">Explore Feature</a>
+                            <a href="/help#anomaly-detection" class="btn btn-outline">Learn More</a>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- AI & Machine Learning Features -->
+            <section class="feature-category">
+                <div class="category-header">
+                    <div class="category-icon">
+                        <i class="fas fa-brain"></i>
+                    </div>
+                    <h2 class="category-title">AI & Machine Learning</h2>
+                </div>
+
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-header">
+                            <div class="feature-icon">
+                                <i class="fas fa-robot"></i>
+                            </div>
+                            <div>
+                                <h3 class="feature-title">AI Recommendations</h3>
+                                <p class="feature-description">
+                                    Get intelligent, data-driven recommendations to optimize your business metrics and user experience.
+                                </p>
+                            </div>
+                        </div>
+                        <ul class="feature-highlights">
+                            <li><i class="fas fa-check"></i> Personalized insights</li>
+                            <li><i class="fas fa-check"></i> Predictive analytics</li>
+                            <li><i class="fas fa-check"></i> Automated optimization tips</li>
+                            <li><i class="fas fa-check"></i> Impact scoring</li>
+                        </ul>
+                        <div class="feature-actions">
+                            <a href="/dashboard" class="btn btn-primary">View Recommendations</a>
+                            <a href="/help#ai-recommendations" class="btn btn-outline">Learn More</a>
+                        </div>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="feature-header">
+                            <div class="feature-icon">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                            <div>
+                                <h3 class="feature-title">Predictive Analytics</h3>
+                                <p class="feature-description">
+                                    Forecast future trends and user behavior using advanced machine learning models and historical data.
+                                </p>
+                            </div>
+                        </div>
+                        <ul class="feature-highlights">
+                            <li><i class="fas fa-check"></i> Revenue forecasting</li>
+                            <li><i class="fas fa-check"></i> User growth predictions</li>
+                            <li><i class="fas fa-check"></i> Churn risk assessment</li>
+                            <li><i class="fas fa-check"></i> Confidence intervals</li>
+                        </ul>
+                        <div class="feature-actions">
+                            <a href="/dashboard" class="btn btn-primary">View Predictions</a>
+                            <a href="/help#predictive-analytics" class="btn btn-outline">Learn More</a>
+                        </div>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="feature-header">
+                            <div class="feature-icon">
+                                <i class="fas fa-magic"></i>
+                            </div>
+                            <div>
+                                <h3 class="feature-title">Automated Insights</h3>
+                                <p class="feature-description">
+                                    Let our AI automatically surface important patterns and insights from your data without manual analysis.
+                                </p>
+                            </div>
+                        </div>
+                        <ul class="feature-highlights">
+                            <li><i class="fas fa-check"></i> Pattern recognition</li>
+                            <li><i class="fas fa-check"></i> Correlation discovery</li>
+                            <li><i class="fas fa-check"></i> Anomaly explanation</li>
+                            <li><i class="fas fa-check"></i> Natural language summaries</li>
+                        </ul>
+                        <div class="feature-actions">
+                            <a href="/dashboard" class="btn btn-primary">View Insights</a>
+                            <a href="/help#automated-insights" class="btn btn-outline">Learn More</a>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Data Management Features -->
+            <section class="feature-category">
+                <div class="category-header">
+                    <div class="category-icon">
+                        <i class="fas fa-database"></i>
+                    </div>
+                    <h2 class="category-title">Data Management</h2>
+                </div>
+
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-header">
+                            <div class="feature-icon">
+                                <i class="fas fa-plug"></i>
+                            </div>
+                            <div>
+                                <h3 class="feature-title">Real Data Integration</h3>
+                                <p class="feature-description">
+                                    Connect multiple data sources including databases, APIs, and file uploads for comprehensive analytics.
+                                </p>
+                            </div>
+                        </div>
+                        <ul class="feature-highlights">
+                            <li><i class="fas fa-check"></i> PostgreSQL & MySQL support</li>
+                            <li><i class="fas fa-check"></i> CSV/JSON file upload</li>
+                            <li><i class="fas fa-check"></i> REST API integration</li>
+                            <li><i class="fas fa-check"></i> Real-time data sync</li>
+                        </ul>
+                        <div class="feature-actions">
+                            <a href="/real-data-config" class="btn btn-primary">Configure Sources</a>
+                            <a href="/help#data-integration" class="btn btn-outline">Learn More</a>
+                        </div>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="feature-header">
+                            <div class="feature-icon">
+                                <i class="fas fa-download"></i>
+                            </div>
+                            <div>
+                                <h3 class="feature-title">Data Export</h3>
+                                <p class="feature-description">
+                                    Export your analytics data in multiple formats for external analysis, reporting, and sharing.
+                                </p>
+                            </div>
+                        </div>
+                        <ul class="feature-highlights">
+                            <li><i class="fas fa-check"></i> CSV, JSON, Excel formats</li>
+                            <li><i class="fas fa-check"></i> Scheduled exports</li>
+                            <li><i class="fas fa-check"></i> Custom data filtering</li>
+                            <li><i class="fas fa-check"></i> API access</li>
+                        </ul>
+                        <div class="feature-actions">
+                            <a href="/data-export" class="btn btn-primary">Export Data</a>
+                            <a href="/help#data-export" class="btn btn-outline">Learn More</a>
+                        </div>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="feature-header">
+                            <div class="feature-icon">
+                                <i class="fas fa-sticky-note"></i>
+                            </div>
+                            <div>
+                                <h3 class="feature-title">Notion Integration</h3>
+                                <p class="feature-description">
+                                    Sync your analytics data directly to Notion for seamless collaboration and reporting.
+                                </p>
+                            </div>
+                        </div>
+                        <ul class="feature-highlights">
+                            <li><i class="fas fa-check"></i> Automated data sync</li>
+                            <li><i class="fas fa-check"></i> Custom database mapping</li>
+                            <li><i class="fas fa-check"></i> Real-time updates</li>
+                            <li><i class="fas fa-check"></i> Team collaboration</li>
+                        </ul>
+                        <div class="feature-actions">
+                            <a href="/notion-integration" class="btn btn-primary">Connect Notion</a>
+                            <a href="/help#notion-integration" class="btn btn-outline">Learn More</a>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Business Intelligence Features -->
+            <section class="feature-category">
+                <div class="category-header">
+                    <div class="category-icon">
+                        <i class="fas fa-chart-pie"></i>
+                    </div>
+                    <h2 class="category-title">Business Intelligence</h2>
+                </div>
+
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-header">
+                            <div class="feature-icon">
+                                <i class="fas fa-bullseye"></i>
+                            </div>
+                            <div>
+                                <h3 class="feature-title">ICE Framework</h3>
+                                <p class="feature-description">
+                                    Prioritize initiatives using the Impact, Confidence, and Ease framework for data-driven decision making.
+                                </p>
+                            </div>
+                        </div>
+                        <ul class="feature-highlights">
+                            <li><i class="fas fa-check"></i> Initiative scoring</li>
+                            <li><i class="fas fa-check"></i> Priority matrix</li>
+                            <li><i class="fas fa-check"></i> Progress tracking</li>
+                            <li><i class="fas fa-check"></i> Team collaboration</li>
+                        </ul>
+                        <div class="feature-actions">
+                            <a href="/ice-framework" class="btn btn-primary">Explore Framework</a>
+                            <a href="/help#ice-framework" class="btn btn-outline">Learn More</a>
+                        </div>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="feature-header">
+                            <div class="feature-icon">
+                                <i class="fas fa-star"></i>
+                            </div>
+                            <div>
+                                <h3 class="feature-title">North Star Metric</h3>
+                                <p class="feature-description">
+                                    Define and track your primary business metric that represents the core value you deliver to customers.
+                                </p>
+                            </div>
+                        </div>
+                        <ul class="feature-highlights">
+                            <li><i class="fas fa-check"></i> Metric definition</li>
+                            <li><i class="fas fa-check"></i> Progress tracking</li>
+                            <li><i class="fas fa-check"></i> Driver analysis</li>
+                            <li><i class="fas fa-check"></i> Goal setting</li>
+                        </ul>
+                        <div class="feature-actions">
+                            <a href="/dashboard" class="btn btn-primary">View Metric</a>
+                            <a href="/help#north-star" class="btn btn-outline">Learn More</a>
+                        </div>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="feature-header">
+                            <div class="feature-icon">
+                                <i class="fas fa-file-alt"></i>
+                            </div>
+                            <div>
+                                <h3 class="feature-title">Custom Reports</h3>
+                                <p class="feature-description">
+                                    Create customized reports and dashboards tailored to your specific business needs and metrics.
+                                </p>
+                            </div>
+                        </div>
+                        <ul class="feature-highlights">
+                            <li><i class="fas fa-check"></i> Drag-and-drop builder</li>
+                            <li><i class="fas fa-check"></i> Multiple chart types</li>
+                            <li><i class="fas fa-check"></i> Scheduled reporting</li>
+                            <li><i class="fas fa-check"></i> Team sharing</li>
+                        </ul>
+                        <div class="feature-actions">
+                            <a href="/custom-reports" class="btn btn-primary">Create Report</a>
+                            <a href="/help#custom-reports" class="btn btn-outline">Learn More</a>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Feature Comparison Table -->
+            <section class="comparison-section">
+                <div class="category-header">
+                    <div class="category-icon">
+                        <i class="fas fa-layer-group"></i>
+                    </div>
+                    <h2 class="category-title">Plan Comparison</h2>
+                </div>
+
+                <div class="comparison-table">
+                    <div class="table-header">
+                        <div>Feature</div>
+                        <div>Starter</div>
+                        <div>Professional</div>
+                        <div>Enterprise</div>
+                    </div>
+                    <div class="table-row">
+                        <div class="feature-name">Cohort Analysis</div>
+                        <div class="availability available"><i class="fas fa-check"></i></div>
+                        <div class="availability available"><i class="fas fa-check"></i></div>
+                        <div class="availability available"><i class="fas fa-check"></i></div>
+                    </div>
+                    <div class="table-row">
+                        <div class="feature-name">Funnel Analysis</div>
+                        <div class="availability available"><i class="fas fa-check"></i></div>
+                        <div class="availability available"><i class="fas fa-check"></i></div>
+                        <div class="availability available"><i class="fas fa-check"></i></div>
+                    </div>
+                    <div class="table-row">
+                        <div class="feature-name">A/B Testing</div>
+                        <div class="availability available"><i class="fas fa-check"></i></div>
+                        <div class="availability available"><i class="fas fa-check"></i></div>
+                        <div class="availability available"><i class="fas fa-check"></i></div>
+                    </div>
+                    <div class="table-row">
+                        <div class="feature-name">AI Recommendations</div>
+                        <div class="availability not-available"><i class="fas fa-times"></i></div>
+                        <div class="availability available"><i class="fas fa-check"></i></div>
+                        <div class="availability available"><i class="fas fa-check"></i></div>
+                    </div>
+                    <div class="table-row">
+                        <div class="feature-name">Real Data Integration</div>
+                        <div class="availability not-available"><i class="fas fa-times"></i></div>
+                        <div class="availability available"><i class="fas fa-check"></i></div>
+                        <div class="availability available"><i class="fas fa-check"></i></div>
+                    </div>
+                    <div class="table-row">
+                        <div class="feature-name">Notion Integration</div>
+                        <div class="availability not-available"><i class="fas fa-times"></i></div>
+                        <div class="availability available"><i class="fas fa-check"></i></div>
+                        <div class="availability available"><i class="fas fa-check"></i></div>
+                    </div>
+                    <div class="table-row">
+                        <div class="feature-name">Custom Reports</div>
+                        <div class="availability not-available"><i class="fas fa-times"></i></div>
+                        <div class="availability available"><i class="fas fa-check"></i></div>
+                        <div class="availability available"><i class="fas fa-check"></i></div>
+                    </div>
+                    <div class="table-row">
+                        <div class="feature-name">Advanced Security</div>
+                        <div class="availability not-available"><i class="fas fa-times"></i></div>
+                        <div class="availability not-available"><i class="fas fa-times"></i></div>
+                        <div class="availability available"><i class="fas fa-check"></i></div>
+                    </div>
+                    <div class="table-row">
+                        <div class="feature-name">Dedicated Support</div>
+                        <div class="availability not-available"><i class="fas fa-times"></i></div>
+                        <div class="availability not-available"><i class="fas fa-times"></i></div>
+                        <div class="availability available"><i class="fas fa-check"></i></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- CTA Section -->
+            <section class="cta-section">
+                <h2>Ready to Transform Your Analytics?</h2>
+                <p>Join thousands of businesses using AI Analytics to make data-driven decisions and drive growth.</p>
+                <div class="cta-buttons">
+                    <a href="/signup" class="btn btn-primary" style="padding: 1rem 2rem; font-size: 1.125rem;">
+                        <i class="fas fa-rocket"></i> Start Your Free Trial
+                    </a>
+                    <a href="/contact" class="btn btn-outline" style="padding: 1rem 2rem; font-size: 1.125rem;">
+                        <i class="fas fa-calendar"></i> Schedule a Demo
+                    </a>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        // Simple animation for feature cards on scroll
+        document.addEventListener('DOMContentLoaded', function() {
+            const featureCards = document.querySelectorAll('.feature-card');
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.style.opacity = '1';
+                        entry.target.style.transform = 'translateY(0)';
+                    }
+                });
+            }, { threshold: 0.1 });
+
+            featureCards.forEach(card => {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(20px)';
+                card.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+                observer.observe(card);
+            });
+        });
+
+        // Mobile sidebar toggle
+        function toggleSidebar() {
+            document.querySelector('.sidebar').classList.toggle('active');
+        }
+    </script>
+</body>
+</html>

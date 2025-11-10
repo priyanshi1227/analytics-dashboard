@@ -1,0 +1,404 @@
+{% extends "base.html" %}
+
+{% block title %}Cohort Analysis - AI Analytics{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">Cohort Analysis</h1>
+        <p class="text-gray-600 dark:text-gray-400">Track user retention and behavior patterns over time</p>
+    </div>
+
+    <!-- Controls -->
+    <div class="card p-6 mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Cohort Type</label>
+                <select id="cohortType" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
+                    <option value="quarterly">Quarterly</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Metric</label>
+                <select id="cohortMetric" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                    <option value="retention">Retention</option>
+                    <option value="revenue">Revenue</option>
+                    <option value="engagement">Engagement</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Periods</label>
+                <select id="periodCount" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                    <option value="8">8 Periods</option>
+                    <option value="12" selected>12 Periods</option>
+                    <option value="16">16 Periods</option>
+                </select>
+            </div>
+            <div class="flex items-end">
+                <button id="analyzeCohorts" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors">
+                    <i class="fas fa-chart-bar mr-2"></i>Analyze
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results -->
+    <div id="cohortResults" class="space-y-6">
+        <!-- Default placeholder content -->
+        <div class="card p-12 text-center">
+            <i class="fas fa-chart-line text-4xl text-gray-300 mb-4"></i>
+            <h3 class="text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">No Data Yet</h3>
+            <p class="text-gray-500 dark:text-gray-400">Configure your analysis and click "Analyze" to see cohort data</p>
+        </div>
+    </div>
+
+    <!-- Loading State -->
+    <div id="cohortLoading" class="hidden text-center py-12">
+        <div class="loading-spinner mx-auto mb-4"></div>
+        <p class="text-gray-600 dark:text-gray-400">Analyzing cohort data...</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Simple chart instance storage
+    let currentChart = null;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('DOM loaded - cohort analysis');
+
+        const analyzeButton = document.getElementById('analyzeCohorts');
+        if (analyzeButton) {
+            analyzeButton.addEventListener('click', analyzeCohorts);
+            console.log('Analyze button bound');
+        }
+
+        // Auto-run on load
+        setTimeout(analyzeCohorts, 500);
+    });
+
+    function analyzeCohorts() {
+        console.log('Starting analysis...');
+
+        const cohortType = document.getElementById('cohortType').value;
+        const metric = document.getElementById('cohortMetric').value;
+        const periodCount = parseInt(document.getElementById('periodCount').value);
+
+        const loadingElement = document.getElementById('cohortLoading');
+        const resultsElement = document.getElementById('cohortResults');
+
+        // Show loading
+        if (loadingElement) {
+            loadingElement.classList.remove('hidden');
+            console.log('Loading shown');
+        }
+
+        if (resultsElement) {
+            resultsElement.innerHTML = '';
+        }
+
+        // Simulate processing
+        setTimeout(() => {
+            try {
+                console.log('Generating data...');
+                const data = generateSampleData(cohortType, metric, periodCount);
+                renderResults(data);
+                if (window.toast) {
+                    window.toast.show('Analysis completed!', 'success');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                if (window.toast) {
+                    window.toast.show('Analysis failed', 'error');
+                }
+                showError();
+            } finally {
+                if (loadingElement) {
+                    loadingElement.classList.add('hidden');
+                }
+            }
+        }, 1000);
+    }
+
+    function renderResults(data) {
+        const container = document.getElementById('cohortResults');
+        if (!container) return;
+
+        console.log('Rendering results...');
+
+        // Simple HTML for results
+        container.innerHTML = `
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div class="card p-4 text-center">
+                    <div class="text-2xl font-bold text-blue-600">${data.metrics.average_retention}%</div>
+                    <div class="text-sm text-gray-600 dark:text-gray-400">Avg Retention</div>
+                </div>
+                <div class="card p-4 text-center">
+                    <div class="text-2xl font-bold text-green-600">${data.metrics.health_score}</div>
+                    <div class="text-sm text-gray-600 dark:text-gray-400">Health Score</div>
+                </div>
+                <div class="card p-4 text-center">
+                    <div class="text-2xl font-bold text-purple-600">${data.metrics.latest_cohort_retention}%</div>
+                    <div class="text-sm text-gray-600 dark:text-gray-400">Latest Retention</div>
+                </div>
+                <div class="card p-4 text-center">
+                    <div class="text-2xl font-bold text-orange-600">${data.metrics.total_cohorts}</div>
+                    <div class="text-sm text-gray-600 dark:text-gray-400">Total Cohorts</div>
+                </div>
+            </div>
+
+            <div class="card p-6">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Cohort Retention Matrix</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="border-b border-gray-200 dark:border-gray-700">
+                                <th class="text-left py-3 px-4 font-medium">Cohort</th>
+                                ${Array.from({length: data.period_count}, (_, i) => `
+                                    <th class="text-center py-3 px-2 font-medium">Period ${i}</th>
+                                `).join('')}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${data.cohort_data.map(cohort => `
+                                <tr class="border-b border-gray-100 dark:border-gray-800">
+                                    <td class="py-3 px-4 font-medium">${cohort.cohort_label}</td>
+                                    ${cohort.periods.map(period => `
+                                        <td class="text-center py-2 px-2">
+                                            <div class="inline-flex items-center justify-center w-12 h-8 rounded ${
+                                                period.period === 0 ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-300 font-bold' :
+                                                period.value >= 80 ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-300' :
+                                                period.value >= 60 ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-300' :
+                                                period.value >= 40 ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-300' :
+                                                period.value >= 20 ? 'bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-300' :
+                                                'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-300'
+                                            }">
+                                                ${typeof period.value === 'number' ? period.value + '%' : period.value}
+                                            </div>
+                                        </td>
+                                    `).join('')}
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card p-6">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Retention Trends</h3>
+                <div class="h-64">
+                    <canvas id="retentionChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card p-6">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Key Insights</h3>
+                <div class="space-y-3">
+                    ${data.summary.insights.map(insight => `
+                        <div class="flex items-start space-x-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                            <i class="fas fa-lightbulb text-yellow-500 mt-1"></i>
+                            <div>
+                                <h4 class="font-medium text-gray-900 dark:text-white">${insight.title}</h4>
+                                <p class="text-gray-600 dark:text-gray-400 text-sm mt-1">${insight.description}</p>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+
+        // Render chart after a brief delay
+        setTimeout(() => {
+            createRetentionChart(data);
+        }, 100);
+    }
+
+    function createRetentionChart(data) {
+        console.log('Creating chart...');
+
+        const canvas = document.getElementById('retentionChart');
+        if (!canvas) {
+            console.error('Canvas element not found!');
+            return;
+        }
+
+        // Clear any existing chart
+        if (currentChart) {
+            currentChart.destroy();
+        }
+
+        const labels = data.cohort_data.map(cohort => cohort.cohort_label);
+        const retentionData = data.cohort_data.map(cohort => {
+            const period1 = cohort.periods[1];
+            return period1 && typeof period1.value === 'number' ? period1.value : 0;
+        });
+
+        console.log('Chart data:', { labels, retentionData });
+
+        try {
+            currentChart = new Chart(canvas, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Retention Rate (%)',
+                        data: retentionData,
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            console.log('Chart created successfully!');
+        } catch (error) {
+            console.error('Chart creation failed:', error);
+
+            // Fallback: Show data in a table instead
+            const chartContainer = canvas.parentElement;
+            chartContainer.innerHTML = `
+                <div class="text-center p-4">
+                    <p class="text-red-500 mb-2">Chart could not be displayed</p>
+                    <div class="text-sm text-gray-600">
+                        <p>Retention Data:</p>
+                        <p>${retentionData.join(', ')}%</p>
+                    </div>
+                </div>
+            `;
+        }
+    }
+
+    function showError() {
+        const container = document.getElementById('cohortResults');
+        if (container) {
+            container.innerHTML = `
+                <div class="card p-6 text-center">
+                    <i class="fas fa-exclamation-triangle text-red-500 text-4xl mb-4"></i>
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">Analysis Error</h3>
+                    <p class="text-gray-600 dark:text-gray-400 mb-4">Please try again</p>
+                    <button onclick="analyzeCohorts()" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg">
+                        Retry Analysis
+                    </button>
+                </div>
+            `;
+        }
+    }
+
+    function generateSampleData(cohortType, metric, periodCount) {
+        // Generate sample cohort labels
+        const cohorts = [];
+        const now = new Date();
+
+        for (let i = periodCount - 1; i >= 0; i--) {
+            if (cohortType === 'weekly') {
+                const date = new Date(now);
+                date.setDate(now.getDate() - (i * 7));
+                cohorts.push(`Week ${i + 1}`);
+            } else if (cohortType === 'monthly') {
+                cohorts.push(`Month ${i + 1}`);
+            } else {
+                cohorts.push(`Q${i + 1}`);
+            }
+        }
+
+        // Generate cohort data
+        const cohortData = cohorts.map((label, cohortIndex) => {
+            const periods = [];
+            for (let periodIndex = 0; periodIndex < periodCount; periodIndex++) {
+                if (periodIndex > cohortIndex) {
+                    periods.push({ period: periodIndex, value: '-' });
+                } else {
+                    let value;
+                    if (periodIndex === 0) {
+                        value = 100;
+                    } else {
+                        const baseRetention = 85 - cohortIndex * 2;
+                        const periodDecay = Math.pow(0.85, periodIndex);
+                        value = Math.max(5, Math.round(baseRetention * periodDecay));
+                    }
+                    periods.push({ period: periodIndex, value });
+                }
+            }
+            return { cohort_label: label, periods };
+        });
+
+        // Calculate metrics
+        const allValues = cohortData.flatMap(c => c.periods.filter(p => typeof p.value === 'number').map(p => p.value));
+        const avgRetention = Math.round(allValues.reduce((a, b) => a + b, 0) / allValues.length);
+        const latestRetention = cohortData[0]?.periods[1]?.value || 0;
+
+        return {
+            cohort_data: cohortData,
+            period_count: periodCount,
+            metrics: {
+                average_retention: avgRetention,
+                health_score: 85 + Math.floor(Math.random() * 15),
+                latest_cohort_retention: latestRetention,
+                total_cohorts: cohortData.length
+            },
+            summary: {
+                insights: [
+                    {
+                        title: "Strong Retention Patterns",
+                        description: "Newer cohorts show improved retention rates."
+                    },
+                    {
+                        title: "Consistent Performance",
+                        description: "Retention rates remain stable across most cohorts."
+                    }
+                ]
+            }
+        };
+    }
+</script>
+
+<style>
+.loading-spinner {
+    border: 3px solid #f3f4f6;
+    border-top: 3px solid #3b82f6;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.card {
+    background: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+}
+
+.dark .card {
+    background: #1f2937;
+}
+
+.h-64 {
+    height: 16rem;
+}
+</style>
+{% endblock %}

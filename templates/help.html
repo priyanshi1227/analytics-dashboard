@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Help & Documentation - AI Analytics</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .help-container {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 2rem;
+        }
+
+        .help-sidebar {
+            background: var(--surface);
+            padding: 1.5rem;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            height: fit-content;
+            position: sticky;
+            top: 2rem;
+        }
+
+        .help-content {
+            background: var(--surface);
+            padding: 2rem;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .help-nav {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .help-nav-item {
+            margin-bottom: 0.5rem;
+        }
+
+        .help-nav-link {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            color: var(--text-muted);
+            text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+
+        .help-nav-link:hover,
+        .help-nav-link.active {
+            background: var(--surface-light);
+            color: var(--text);
+        }
+
+        .help-nav-link i {
+            width: 20px;
+            text-align: center;
+        }
+
+        .search-box {
+            position: relative;
+            margin-bottom: 1.5rem;
+        }
+
+        .search-box input {
+            padding-left: 2.5rem;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+        }
+
+        .help-section {
+            margin-bottom: 3rem;
+            scroll-margin-top: 2rem;
+        }
+
+        .help-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--primary);
+        }
+
+        .faq-item {
+            background: var(--background);
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            border: 1px solid var(--border);
+            overflow: hidden;
+        }
+
+        .faq-question {
+            padding: 1.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.3s;
+        }
+
+        .faq-question:hover {
+            background: var(--surface-light);
+        }
+
+        .faq-answer {
+            padding: 0 1.5rem;
+            max-height: 0;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .faq-item.active .faq-answer {
+            padding: 0 1.5rem 1.5rem 1.5rem;
+            max-height: 500px;
+        }
+
+        .faq-toggle {
+            color: var(--primary);
+            transition: transform 0.3s;
+        }
+
+        .faq-item.active .faq-toggle {
+            transform: rotate(180deg);
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .feature-item {
+            background: var(--background);
+            padding: 1.5rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .feature-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 8px;
+            background: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1rem;
+            color: white;
+        }
+
+        .contact-methods {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .contact-card {
+            background: var(--background);
+            padding: 1.5rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            text-align: center;
+        }
+
+        .contact-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            background: rgba(99, 102, 241, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+            color: var(--primary);
+            font-size: 1.5rem;
+        }
+
+        .code-block {
+            background: var(--background);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.875rem;
+            overflow-x: auto;
+        }
+
+        .step-by-step {
+            margin: 2rem 0;
+        }
+
+        .step {
+            display: flex;
+            align-items: start;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            padding: 1.5rem;
+            background: var(--background);
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .step-number {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .step-content {
+            flex: 1;
+        }
+
+        .step-title {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .video-container {
+            position: relative;
+            padding-bottom: 56.25%;
+            height: 0;
+            margin: 2rem 0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .video-placeholder {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--background);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            border: 2px dashed var(--border);
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <!-- Same sidebar as dashboard -->
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="header">
+                <h1><i class="fas fa-life-ring"></i> Help & Documentation</h1>
+                <div class="header-actions">
+                    <button class="btn btn-primary" onclick="contactSupport()">
+                        <i class="fas fa-headset"></i> Contact Support
+                    </button>
+                </div>
+            </div>
+
+            <div class="help-container">
+                <!-- Help Navigation -->
+                <div class="help-sidebar">
+                    <div class="search-box">
+                        <i class="fas fa-search search-icon"></i>
+                        <input type="text" class="form-control" placeholder="Search help articles...">
+                    </div>
+
+                    <ul class="help-nav">
+                        <li class="help-nav-item">
+                            <a href="#getting-started" class="help-nav-link active">
+                                <i class="fas fa-rocket"></i>
+                                Getting Started
+                            </a>
+                        </li>
+                        <li class="help-nav-item">
+                            <a href="#dashboard" class="help-nav-link">
+                                <i class="fas fa-tachometer-alt"></i>
+                                Dashboard Guide
+                            </a>
+                        </li>
+                        <li class="help-nav-item">
+                            <a href="#analytics" class="help-nav-link">
+                                <i class="fas fa-chart-bar"></i>
+                                Analytics Features
+                            </a>
+                        </li>
+                        <li class="help-nav-item">
+                            <a href="#integrations" class="help-nav-link">
+                                <i class="fas fa-plug"></i>
+                                Integrations
+                            </a>
+                        </li>
+                        <li class="help-nav-item">
+                            <a href="#ai-features" class="help-nav-link">
+                                <i class="fas fa-robot"></i>
+                                AI Features
+                            </a>
+                        </li>
+                        <li class="help-nav-item">
+                            <a href="#troubleshooting" class="help-nav-link">
+                                <i class="fas fa-tools"></i>
+                                Troubleshooting
+                            </a>
+                        </li>
+                        <li class="help-nav-item">
+                            <a href="#api" class="help-nav-link">
+                                <i class="fas fa-code"></i>
+                                API Documentation
+                            </a>
+                        </li>
+                        <li class="help-nav-item">
+                            <a href="#contact" class="help-nav-link">
+                                <i class="fas fa-envelope"></i>
+                                Contact Support
+                            </a>
+                        </li>
+                    </ul>
+
+                    <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border);">
+                        <h4 style="margin-bottom: 1rem;">Quick Links</h4>
+                        <a href="#" class="btn btn-outline btn-sm" style="width: 100%; margin-bottom: 0.5rem;">
+                            <i class="fas fa-download"></i> User Guide PDF
+                        </a>
+                        <a href="#" class="btn btn-outline btn-sm" style="width: 100%; margin-bottom: 0.5rem;">
+                            <i class="fas fa-video"></i> Video Tutorials
+                        </a>
+                        <a href="#" class="btn btn-outline btn-sm" style="width: 100%;">
+                            <i class="fas fa-bug"></i> Report a Bug
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Help Content -->
+                <div class="help-content">
+                    <!-- Getting Started Section -->
+                    <section id="getting-started" class="help-section">
+                        <h2 class="section-title">Getting Started</h2>
+                        <p>Welcome to AI Analytics! This guide will help you set up your account and start gaining insights from your data.</p>
+
+                        <div class="step-by-step">
+                            <div class="step">
+                                <div class="step-number">1</div>
+                                <div class="step-content">
+                                    <div class="step-title">Create Your Account</div>
+                                    <p>Sign up for an account and verify your email address. Choose the plan that best fits your needs.</p>
+                                </div>
+                            </div>
+                            <div class="step">
+                                <div class="step-number">2</div>
+                                <div class="step-content">
+                                    <div class="step-title">Connect Data Sources</div>
+                                    <p>Integrate your databases, upload CSV files, or connect to APIs to bring your data into the platform.</p>
+                                    <div class="code-block">
+                                        // Example API connection<br>
+                                        const response = await fetch('/api/data-sources', {<br>
+                                        &nbsp;&nbsp;method: 'POST',<br>
+                                        &nbsp;&nbsp;headers: { 'Content-Type': 'application/json' },<br>
+                                        &nbsp;&nbsp;body: JSON.stringify({ type: 'postgresql', host: '...' })<br>
+                                        });
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="step">
+                                <div class="step-number">3</div>
+                                <div class="step-content">
+                                    <div class="step-title">Configure Your Dashboard</div>
+                                    <p>Customize your dashboard with the metrics and visualizations that matter most to your business.</p>
+                                </div>
+                            </div>
+                            <div class="step">
+                                <div class="step-number">4</div>
+                                <div class="step-content">
+                                    <div class="step-title">Explore AI Features</div>
+                                    <p>Enable AI recommendations and automated insights to get the most value from your data.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="video-container">
+                            <div class="video-placeholder">
+                                <i class="fas fa-play-circle" style="font-size: 3rem; margin-right: 1rem;"></i>
+                                <span>Getting Started Video Tutorial</span>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- FAQ Section -->
+                    <section id="faq" class="help-section">
+                        <h2 class="section-title">Frequently Asked Questions</h2>
+
+                        <div class="faq-item">
+                            <div class="faq-question" onclick="toggleFAQ(this)">
+                                How do I connect my database?
+                                <i class="fas fa-chevron-down faq-toggle"></i>
+                            </div>
+                            <div class="faq-answer">
+                                <p>You can connect your database by going to Settings → Data Sources and selecting your database type. We support PostgreSQL, MySQL, and other popular databases. You'll need your connection string, host, port, and credentials.</p>
+                            </div>
+                        </div>
+
+                        <div class="faq-item">
+                            <div class="faq-question" onclick="toggleFAQ(this)">
+                                What data formats are supported?
+                                <i class="fas fa-chevron-down faq-toggle"></i>
+                            </div>
+                            <div class="faq-answer">
+                                <p>We support CSV, JSON, Excel files, and direct database connections. For real-time data, you can use our REST API to push data directly to the platform.</p>
+                            </div>
+                        </div>
+
+                        <div class="faq-item">
+                            <div class="faq-question" onclick="toggleFAQ(this)">
+                                How does the AI recommendation system work?
+                                <i class="fas fa-chevron-down faq-toggle"></i>
+                            </div>
+                            <div class="faq-answer">
+                                <p>Our AI analyzes your data patterns, user behavior, and industry benchmarks to provide personalized recommendations. It uses machine learning algorithms to identify opportunities for improvement and predict trends.</p>
+                            </div>
+                        </div>
+
+                        <div class="faq-item">
+                            <div class="faq-question" onclick="toggleFAQ(this)">
+                                Can I export my data and reports?
+                                <i class="fas fa-chevron-down faq-toggle"></i>
+                            </div>
+                            <div class="faq-answer">
+                                <p>Yes, you can export all your data and reports in multiple formats including CSV, JSON, and PDF. Go to the Data Export section to configure your exports.</p>
+                            </div>
+                        </div>
+
+                        <div class="faq-item">
+                            <div class="faq-question" onclick="toggleFAQ(this)">
+                                Is my data secure?
+                                <i class="fas fa-chevron-down faq-toggle"></i>
+                            </div>
+                            <div class="faq-answer">
+                                <p>We take data security seriously. All data is encrypted in transit and at rest. We're compliant with GDPR, CCPA, and other privacy regulations. Regular security audits and penetration testing ensure your data remains safe.</p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Key Features -->
+                    <section id="features" class="help-section">
+                        <h2 class="section-title">Key Features</h2>
+                        <div class="feature-grid">
+                            <div class="feature-item">
+                                <div class="feature-icon">
+                                    <i class="fas fa-chart-line"></i>
+                                </div>
+                                <h4>Real-Time Analytics</h4>
+                                <p>Monitor your metrics in real-time with live data updates and interactive dashboards.</p>
+                            </div>
+                            <div class="feature-item">
+                                <div class="feature-icon">
+                                    <i class="fas fa-robot"></i>
+                                </div>
+                                <h4>AI Insights</h4>
+                                <p>Get automated insights and recommendations powered by machine learning algorithms.</p>
+                            </div>
+                            <div class="feature-item">
+                                <div class="feature-icon">
+                                    <i class="fas fa-vial"></i>
+                                </div>
+                                <h4>A/B Testing</h4>
+                                <p>Run experiments and test different variations to optimize your user experience.</p>
+                            </div>
+                            <div class="feature-item">
+                                <div class="feature-icon">
+                                    <i class="fas fa-bell"></i>
+                                </div>
+                                <h4>Smart Alerts</h4>
+                                <p>Set up custom alerts for important metrics and receive notifications when thresholds are crossed.</p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Contact Section -->
+                    <section id="contact" class="help-section">
+                        <h2 class="section-title">Get Help & Support</h2>
+                        <p>Our support team is here to help you get the most out of AI Analytics.</p>
+
+                        <div class="contact-methods">
+                            <div class="contact-card">
+                                <div class="contact-icon">
+                                    <i class="fas fa-envelope"></i>
+                                </div>
+                                <h4>Email Support</h4>
+                                <p>support@aianalytics.com</p>
+                                <p style="font-size: 0.875rem; color: var(--text-muted);">Typically responds within 2 hours</p>
+                            </div>
+                            <div class="contact-card">
+                                <div class="contact-icon">
+                                    <i class="fas fa-comments"></i>
+                                </div>
+                                <h4>Live Chat</h4>
+                                <p>Available 24/7</p>
+                                <p style="font-size: 0.875rem; color: var(--text-muted);">Instant help from our team</p>
+                            </div>
+                            <div class="contact-card">
+                                <div class="contact-icon">
+                                    <i class="fas fa-phone"></i>
+                                </div>
+                                <h4>Phone Support</h4>
+                                <p>+1 (555) 123-ANAL</p>
+                                <p style="font-size: 0.875rem; color: var(--text-muted);">9AM-6PM EST, Mon-Fri</p>
+                            </div>
+                            <div class="contact-card">
+                                <div class="contact-icon">
+                                    <i class="fas fa-file-alt"></i>
+                                </div>
+                                <h4>Documentation</h4>
+                                <p>Full API docs & guides</p>
+                                <p style="font-size: 0.875rem; color: var(--text-muted);">Comprehensive resources</p>
+                            </div>
+                        </div>
+
+                        <div style="background: var(--background); padding: 2rem; border-radius: 8px; margin-top: 2rem;">
+                            <h4 style="margin-bottom: 1rem;">Still Need Help?</h4>
+                            <p>If you can't find what you're looking for or need technical assistance, don't hesitate to reach out to our support team.</p>
+                            <button class="btn btn-primary" onclick="contactSupport()">
+                                <i class="fas fa-headset"></i> Contact Support Team
+                            </button>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // FAQ toggle functionality
+        function toggleFAQ(element) {
+            const faqItem = element.parentElement;
+            faqItem.classList.toggle('active');
+        }
+
+        // Smooth scrolling for navigation
+        document.querySelectorAll('.help-nav-link').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+
+                // Update active state
+                document.querySelectorAll('.help-nav-link').forEach(l => l.classList.remove('active'));
+                this.classList.add('active');
+
+                // Scroll to section
+                const targetId = this.getAttribute('href');
+                const targetSection = document.querySelector(targetId);
+                if (targetSection) {
+                    targetSection.scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+        });
+
+        // Search functionality
+        document.querySelector('.search-box input').addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+
+            if (searchTerm.length > 2) {
+                // Implement search logic here
+                console.log('Searching for:', searchTerm);
+            }
+        });
+
+        function contactSupport() {
+            // Open support contact form or redirect
+            window.open('mailto:support@aianalytics.com', '_blank');
+        }
+
+        // Update active navigation based on scroll position
+        function updateActiveNav() {
+            const sections = document.querySelectorAll('.help-section');
+            const navLinks = document.querySelectorAll('.help-nav-link');
+
+            let currentSection = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop - 100;
+                if (window.scrollY >= sectionTop) {
+                    currentSection = '#' + section.getAttribute('id');
+                }
+            });
+
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === currentSection) {
+                    link.classList.add('active');
+                }
+            });
+        }
+
+        window.addEventListener('scroll', updateActiveNav);
+    </script>
+</body>
+</html>

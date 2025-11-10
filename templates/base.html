@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}AI Analytics Dashboard{% endblock %}</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Custom Styles -->
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --primary-dark: #1d4ed8;
+            --secondary: #64748b;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --dark: #1e293b;
+            --light: #f8fafc;
+        }
+
+        /* Update the existing sidebar styles */
+.sidebar {
+    transition: all 0.3s ease;
+    width: 260px;
+    height: 100vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: thin;
+    position: fixed;
+    left: 0;
+    top: 64px; /* Height of your navbar */
+    z-index: 40;
+    padding-bottom: 100px; /* Added substantial bottom padding */
+    }
+
+    .sidebar::-webkit-scrollbar {
+    width: 6px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+    background: #cbd5e0;
+    border-radius: 3px;
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover {
+    background: #a0aec0;
+}
+
+.dark .sidebar::-webkit-scrollbar-thumb {
+    background: #4a5568;
+}
+
+.dark .sidebar::-webkit-scrollbar-thumb:hover {
+    background: #718096;
+}
+
+.sidebar.collapsed {
+    width: 70px;
+}
+
+.sidebar.collapsed .sidebar-text {
+    display: none;
+}
+
+.sidebar.collapsed .sidebar-group > div:first-child .sidebar-text {
+    display: none;
+}
+
+/* Update main content to account for fixed sidebar */
+.main-content {
+    transition: all 0.3s ease;
+    margin-left: 260px;
+    min-height: calc(100vh - 64px);
+    overflow-y: auto;
+}
+
+.main-content.collapsed {
+    margin-left: 70px;
+}
+
+/* Ensure the sidebar container has proper spacing */
+.flex.pt-16 {
+    position: relative;
+}
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        .btn {
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .stat-card {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary), var(--success));
+        }
+
+        .loading-spinner {
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Dark mode styles */
+        .dark {
+            --bg-primary: #1a202c;
+            --bg-secondary: #2d3748;
+            --text-primary: #f7fafc;
+            --text-secondary: #e2e8f0;
+        }
+
+        .dark .card {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        .dark .sidebar {
+            background: var(--bg-secondary);
+        }
+
+        .dark .main-content {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+        }
+
+        /* Active sidebar item */
+        .sidebar-item.active {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .sidebar-item.active:hover {
+            background: #1d4ed8;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
+    <!-- Navigation -->
+    <nav class="bg-white dark:bg-gray-800 shadow-lg z-50 fixed top-0 left-0 right-0">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-4">
+                    <button id="sidebarToggle" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
+                        <i class="fas fa-bars text-gray-600 dark:text-gray-300"></i>
+                    </button>
+                    <h1 class="text-xl font-bold text-gray-800 dark:text-white">AI Analytics Dashboard</h1>
+                </div>
+
+                <div class="flex items-center space-x-4">
+                    <!-- Theme Toggle -->
+                    <button id="themeToggle" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
+                        <i class="fas fa-moon text-gray-600 dark:text-gray-300"></i>
+                    </button>
+
+                    <!-- User Menu -->
+                    <div class="relative" id="userMenu">
+                        <button class="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold user-initials">
+                                U
+                            </div>
+                            <span class="text-gray-700 dark:text-gray-300 font-medium" id="userName">User</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="flex pt-16">
+        <!-- Sidebar -->
+        <aside id="sidebar" class="sidebar bg-white dark:bg-gray-800 shadow-lg h-screen fixed left-0 top-16 overflow-y-auto">
+            <div class="p-4">
+                <nav class="mt-4">
+                    <div class="space-y-1">
+                        <!-- Dashboard -->
+                        <a href="/dashboard" class="sidebar-item flex items-center space-x-3 p-3 rounded-lg hover:bg-blue-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                            <i class="fas fa-chart-line w-5"></i>
+                            <span class="sidebar-text font-medium">Dashboard</span>
+                        </a>
+
+                        <!-- Analytics -->
+                        <div class="sidebar-group">
+                            <div class="flex items-center space-x-3 p-3 text-gray-500 dark:text-gray-400 font-medium">
+                                <i class="fas fa-chart-bar w-5"></i>
+                                <span class="sidebar-text">Analytics</span>
+                            </div>
+                            <div class="ml-4 space-y-1">
+                                <a href="/cohort-analysis" class="sidebar-item flex items-center space-x-3 p-2 rounded-lg hover:bg-blue-50 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                                    <i class="fas fa-users w-4"></i>
+                                    <span class="sidebar-text text-sm">Cohort Analysis</span>
+                                </a>
+                                <a href="/funnel-analysis" class="sidebar-item flex items-center space-x-3 p-2 rounded-lg hover:bg-blue-50 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                                    <i class="fas fa-filter w-4"></i>
+                                    <span class="sidebar-text text-sm">Funnel Analysis</span>
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- AI Features -->
+                        <a href="/ai-recommendations" class="sidebar-item flex items-center space-x-3 p-3 rounded-lg hover:bg-blue-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                            <i class="fas fa-robot w-5"></i>
+                            <span class="sidebar-text font-medium">AI Recommendations</span>
+                        </a>
+
+                        <!-- ICE Framework -->
+                        <a href="/ice-framework" class="sidebar-item flex items-center space-x-3 p-3 rounded-lg hover:bg-blue-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                            <i class="fas fa-bullseye w-5"></i>
+                            <span class="sidebar-text font-medium">ICE Framework</span>
+                        </a>
+
+                        <!-- Real Data -->
+                        <a href="/real-data-config" class="sidebar-item flex items-center space-x-3 p-3 rounded-lg hover:bg-blue-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                            <i class="fas fa-database w-5"></i>
+                            <span class="sidebar-text font-medium">Real Data</span>
+                        </a>
+
+                        <!-- A/B Testing -->
+                        <a href="/ab-testing" class="sidebar-item flex items-center space-x-3 p-3 rounded-lg hover:bg-blue-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                            <i class="fas fa-vial w-5"></i>
+                            <span class="sidebar-text font-medium">A/B Testing</span>
+                        </a>
+
+                        <!-- Data Export -->
+                        <a href="/data-export" class="sidebar-item flex items-center space-x-3 p-3 rounded-lg hover:bg-blue-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                            <i class="fas fa-file-export w-5"></i>
+                            <span class="sidebar-text font-medium">Data Export</span>
+                        </a>
+
+                        <!-- Anomaly Detection -->
+                        <a href="/anomaly-detection" class="sidebar-item flex items-center space-x-3 p-3 rounded-lg hover:bg-blue-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                            <i class="fas fa-search w-5"></i>
+                            <span class="sidebar-text font-medium">Anomaly Detection</span>
+                        </a>
+
+                        <!-- Custom Reports -->
+                        <a href="/custom-reports" class="sidebar-item flex items-center space-x-3 p-3 rounded-lg hover:bg-blue-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                            <i class="fas fa-chart-bar w-5"></i>
+                            <span class="sidebar-text font-medium">Custom Reports</span>
+                        </a>
+
+                        <!-- Notion Integration -->
+                        <a href="/notion-integration" class="sidebar-item flex items-center space-x-3 p-3 rounded-lg hover:bg-blue-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                            <i class="fab fa-notion w-5"></i>
+                            <span class="sidebar-text font-medium">Notion Sync</span>
+                        </a>
+
+                        <!-- User Management -->
+                        <a href="/user-management" class="sidebar-item flex items-center space-x-3 p-3 rounded-lg hover:bg-blue-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                            <i class="fas fa-users-cog w-5"></i>
+                            <span class="sidebar-text font-medium">User Management</span>
+                        </a>
+
+                        <!-- Settings -->
+                        <div class="sidebar-group mt-8">
+                            <div class="flex items-center space-x-3 p-3 text-gray-500 dark:text-gray-400 font-medium">
+                                <i class="fas fa-cog w-5"></i>
+                                <span class="sidebar-text">Settings</span>
+                            </div>
+                            <div class="ml-4 space-y-1">
+                                <a href="/profile" class="sidebar-item flex items-center space-x-3 p-2 rounded-lg hover:bg-blue-50 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                                    <i class="fas fa-user w-4"></i>
+                                    <span class="sidebar-text text-sm">Profile</span>
+                                </a>
+                                <a href="/user-history" class="sidebar-item flex items-center space-x-3 p-2 rounded-lg hover:bg-blue-50 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                                    <i class="fas fa-history w-4"></i>
+                                    <span class="sidebar-text text-sm">Activity History</span>
+                                </a>
+                                <a href="/logout" class="sidebar-item flex items-center space-x-3 p-2 rounded-lg hover:bg-blue-50 dark:hover:bg-gray-700 text-grey-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                                    <i class="fas fa-history w-4"></i>
+                                    <span class="sidebar-text text-sm">Logout</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </nav>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main id="mainContent" class="main-content flex-1 p-6 transition-all duration-300">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script>
+        // Initialize user data
+        document.addEventListener('DOMContentLoaded', function() {
+            const userData = JSON.parse(localStorage.getItem('user') || '{}');
+            if (userData.full_name) {
+                document.getElementById('userName').textContent = userData.full_name;
+                const initials = userData.full_name.split(' ').map(n => n[0]).join('');
+                document.querySelector('.user-initials').textContent = initials;
+            }
+
+            // Set active sidebar item
+            const currentPath = window.location.pathname;
+            document.querySelectorAll('.sidebar-item').forEach(item => {
+                if (item.getAttribute('href') === currentPath) {
+                    item.classList.add('active');
+                    item.classList.remove('hover:bg-blue-50', 'dark:hover:bg-gray-700', 'hover:text-blue-600', 'dark:hover:text-blue-400');
+                    item.classList.add('bg-blue-600', 'text-white');
+                }
+            });
+        });
+
+        // Theme Toggle
+        const themeToggle = document.getElementById('themeToggle');
+        const themeIcon = themeToggle.querySelector('i');
+
+        themeToggle.addEventListener('click', () => {
+            document.documentElement.classList.toggle('dark');
+            if (document.documentElement.classList.contains('dark')) {
+                themeIcon.classList.remove('fa-moon');
+                themeIcon.classList.add('fa-sun');
+                localStorage.setItem('theme', 'dark');
+            } else {
+                themeIcon.classList.remove('fa-sun');
+                themeIcon.classList.add('fa-moon');
+                localStorage.setItem('theme', 'light');
+            }
+        });
+
+        // Load saved theme
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'dark') {
+            document.documentElement.classList.add('dark');
+            themeIcon.classList.remove('fa-moon');
+            themeIcon.classList.add('fa-sun');
+        }
+
+        // Sidebar Toggle
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('mainContent');
+
+        sidebarToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('collapsed');
+        });
+
+        // API Helper
+        const api = {
+            async request(url, options = {}) {
+                const token = localStorage.getItem('token');
+                const headers = {
+                    'Content-Type': 'application/json',
+                    ...options.headers
+                };
+
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                }
+
+                try {
+                    const response = await fetch(url, {
+                        ...options,
+                        headers
+                    });
+
+                    if (response.status === 401) {
+                        localStorage.removeItem('token');
+                        localStorage.removeItem('user');
+                        window.location.href = '/login';
+                        return;
+                    }
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    return data;
+                } catch (error) {
+                    console.error('API request failed:', error);
+                    throw error;
+                }
+            },
+
+            async get(url) {
+                return this.request(url);
+            },
+
+            async post(url, data) {
+                return this.request(url, {
+                    method: 'POST',
+                    body: JSON.stringify(data)
+                });
+            },
+
+            async put(url, data) {
+                return this.request(url, {
+                    method: 'PUT',
+                    body: JSON.stringify(data)
+                });
+            },
+
+            async delete(url) {
+                return this.request(url, {
+                    method: 'DELETE'
+                });
+            }
+        };
+
+        // Toast notifications
+        const toast = {
+            show(message, type = 'info') {
+                const toast = document.createElement('div');
+                toast.className = `fixed top-20 right-4 p-4 rounded-lg shadow-lg transform transition-transform duration-300 translate-x-full z-50 ${this.getTypeClass(type)}`;
+                toast.innerHTML = `
+                    <div class="flex items-center space-x-2">
+                        <i class="fas ${this.getTypeIcon(type)}"></i>
+                        <span>${message}</span>
+                    </div>
+                `;
+
+                document.body.appendChild(toast);
+
+                setTimeout(() => {
+                    toast.classList.remove('translate-x-full');
+                }, 100);
+
+                setTimeout(() => {
+                    toast.classList.add('translate-x-full');
+                    setTimeout(() => {
+                        if (document.body.contains(toast)) {
+                            document.body.removeChild(toast);
+                        }
+                    }, 300);
+                }, 3000);
+            },
+
+            getTypeClass(type) {
+                const classes = {
+                    success: 'bg-green-500 text-white',
+                    error: 'bg-red-500 text-white',
+                    warning: 'bg-yellow-500 text-white',
+                    info: 'bg-blue-500 text-white'
+                };
+                return classes[type] || classes.info;
+            },
+
+            getTypeIcon(type) {
+                const icons = {
+                    success: 'fa-check-circle',
+                    error: 'fa-exclamation-circle',
+                    warning: 'fa-exclamation-triangle',
+                    info: 'fa-info-circle'
+                };
+                return icons[type] || icons.info;
+            }
+        };
+
+        // Make API and toast available globally
+        window.api = api;
+        window.toast = toast;
+
+        // Utility functions
+        window.DashboardUtils = {
+            debounce(func, wait) {
+                let timeout;
+                return function executedFunction(...args) {
+                    const later = () => {
+                        clearTimeout(timeout);
+                        func(...args);
+                    };
+                    clearTimeout(timeout);
+                    timeout = setTimeout(later, wait);
+                };
+            },
+            formatNumber(num) {
+                return new Intl.NumberFormat().format(num);
+            }
+        };
+
+        window.DateUtils = {
+            getRelativeTime(date) {
+                const now = new Date();
+                const diffMs = now - new Date(date);
+                const diffMins = Math.floor(diffMs / 60000);
+                const diffHours = Math.floor(diffMs / 3600000);
+                const diffDays = Math.floor(diffMs / 86400000);
+
+                if (diffMins < 1) return 'just now';
+                if (diffMins < 60) return `${diffMins}m ago`;
+                if (diffHours < 24) return `${diffHours}h ago`;
+                if (diffDays < 7) return `${diffDays}d ago`;
+                return new Date(date).toLocaleDateString();
+            }
+        };
+    </script>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

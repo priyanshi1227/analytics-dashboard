@@ -1,0 +1,471 @@
+{% extends "base.html" %}
+
+{% block title %}AI Recommendations - AI Analytics{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">AI Recommendations</h1>
+        <p class="text-gray-600 dark:text-gray-400">Smart insights and actionable recommendations powered by AI</p>
+    </div>
+
+    <!-- Controls -->
+    <div class="card p-6 mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Focus Area</label>
+                <select id="focusArea" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700">
+                    <option value="all">All Areas</option>
+                    <option value="retention">User Retention</option>
+                    <option value="conversion">Conversion</option>
+                    <option value="engagement">Engagement</option>
+                    <option value="revenue">Revenue</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Priority</label>
+                <select id="priority" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700">
+                    <option value="all">All Priorities</option>
+                    <option value="high">High Impact</option>
+                    <option value="medium">Medium Impact</option>
+                    <option value="low">Low Impact</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Timeframe</label>
+                <select id="timeframe" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700">
+                    <option value="7">Last 7 days</option>
+                    <option value="30" selected>Last 30 days</option>
+                    <option value="90">Last 90 days</option>
+                </select>
+            </div>
+            <div class="flex items-end">
+                <button id="generateRecommendations" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg">
+                    <i class="fas fa-robot mr-2"></i>Generate
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results -->
+    <div id="recommendationsResults">
+        <div class="card p-12 text-center">
+            <i class="fas fa-robot text-4xl text-gray-300 mb-4"></i>
+            <h3 class="text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">No Recommendations Yet</h3>
+            <p class="text-gray-500 dark:text-gray-400">Configure your preferences and click "Generate" to get AI recommendations</p>
+        </div>
+    </div>
+
+    <!-- Loading State -->
+    <div id="recommendationsLoading" class="hidden text-center py-12">
+        <div class="loading-spinner mx-auto mb-4"></div>
+        <p class="text-gray-600 dark:text-gray-400">AI is analyzing your data...</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const generateButton = document.getElementById('generateRecommendations');
+        if (generateButton) {
+            generateButton.addEventListener('click', generateRecommendations);
+        }
+        // Auto-run on load
+        setTimeout(generateRecommendations, 500);
+    });
+
+    function generateRecommendations() {
+        const focusArea = document.getElementById('focusArea').value;
+        const priority = document.getElementById('priority').value;
+        const timeframe = document.getElementById('timeframe').value;
+
+        const loadingElement = document.getElementById('recommendationsLoading');
+        const resultsElement = document.getElementById('recommendationsResults');
+
+        // Show loading
+        loadingElement.classList.remove('hidden');
+        resultsElement.innerHTML = '';
+
+        // Simulate AI processing
+        setTimeout(() => {
+            try {
+                const data = generateAIData(focusArea, priority, timeframe);
+                renderRecommendations(data);
+                if (window.toast) {
+                    window.toast.show('AI recommendations generated!', 'success');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                if (window.toast) {
+                    window.toast.show('Failed to generate recommendations', 'error');
+                }
+                showError();
+            } finally {
+                loadingElement.classList.add('hidden');
+            }
+        }, 1500);
+    }
+
+    function renderRecommendations(data) {
+        const container = document.getElementById('recommendationsResults');
+
+        container.innerHTML = `
+            <!-- Summary Stats -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div class="card p-4 text-center">
+                    <div class="text-2xl font-bold text-blue-600">${data.summary.total_recommendations}</div>
+                    <div class="text-sm text-gray-600 dark:text-gray-400">Total Recommendations</div>
+                </div>
+                <div class="card p-4 text-center">
+                    <div class="text-2xl font-bold text-green-600">${data.summary.high_impact}</div>
+                    <div class="text-sm text-gray-600 dark:text-gray-400">High Impact</div>
+                </div>
+                <div class="card p-4 text-center">
+                    <div class="text-2xl font-bold text-purple-600">${data.summary.estimated_impact}%</div>
+                    <div class="text-sm text-gray-600 dark:text-gray-400">Estimated Impact</div>
+                </div>
+                <div class="card p-4 text-center">
+                    <div class="text-2xl font-bold text-orange-600">${data.summary.implementation_time}</div>
+                    <div class="text-sm text-gray-600 dark:text-gray-400">Avg. Implementation</div>
+                </div>
+            </div>
+
+            <!-- Priority Recommendations -->
+            <div class="card p-6 mb-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Priority Recommendations</h3>
+                    <span class="bg-red-100 text-red-800 text-sm font-medium px-3 py-1 rounded-full">High Impact</span>
+                </div>
+                <div class="space-y-4">
+                    ${data.recommendations.filter(rec => rec.priority === 'high').map(rec => `
+                        <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                            <div class="flex items-start justify-between">
+                                <div class="flex items-start space-x-3 flex-1">
+                                    <div class="w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center mt-1">
+                                        <i class="fas ${rec.icon} text-sm"></i>
+                                    </div>
+                                    <div class="flex-1">
+                                        <h4 class="font-semibold text-gray-900 dark:text-white">${rec.title}</h4>
+                                        <p class="text-gray-600 dark:text-gray-400 text-sm mt-1">${rec.description}</p>
+                                        <div class="flex flex-wrap gap-2 mt-3">
+                                            <span class="bg-red-100 text-red-800 text-xs px-2 py-1 rounded">${rec.impact}% impact</span>
+                                            <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">${rec.effort}</span>
+                                            <span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">${rec.area}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button class="ml-4 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm transition-colors">
+                                    Implement
+                                </button>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+
+            <!-- Medium Priority -->
+            <div class="card p-6 mb-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Growth Opportunities</h3>
+                    <span class="bg-yellow-100 text-yellow-800 text-sm font-medium px-3 py-1 rounded-full">Medium Impact</span>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    ${data.recommendations.filter(rec => rec.priority === 'medium').map(rec => `
+                        <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+                            <div class="flex items-start space-x-3">
+                                <div class="w-8 h-8 bg-yellow-500 text-white rounded-full flex items-center justify-center mt-1">
+                                    <i class="fas ${rec.icon} text-sm"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <h4 class="font-semibold text-gray-900 dark:text-white">${rec.title}</h4>
+                                    <p class="text-gray-600 dark:text-gray-400 text-sm mt-1">${rec.description}</p>
+                                    <div class="flex flex-wrap gap-2 mt-3">
+                                        <span class="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded">${rec.impact}% impact</span>
+                                        <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">${rec.effort}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+
+            <!-- Quick Wins -->
+            <div class="card p-6 mb-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Quick Wins</h3>
+                    <span class="bg-green-100 text-green-800 text-sm font-medium px-3 py-1 rounded-full">Low Effort</span>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    ${data.recommendations.filter(rec => rec.priority === 'low').map(rec => `
+                        <div class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                            <div class="text-center">
+                                <div class="w-12 h-12 bg-green-500 text-white rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <i class="fas ${rec.icon}"></i>
+                                </div>
+                                <h4 class="font-semibold text-gray-900 dark:text-white text-sm mb-2">${rec.title}</h4>
+                                <p class="text-gray-600 dark:text-gray-400 text-xs mb-3">${rec.description}</p>
+                                <div class="flex justify-center space-x-2">
+                                    <span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">${rec.impact}%</span>
+                                    <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">${rec.effort}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+
+            <!-- Implementation Roadmap -->
+            <div class="card p-6">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-6">Implementation Roadmap</h3>
+                <div class="space-y-6">
+                    ${data.roadmap.map((phase, index) => `
+                        <div class="flex items-start space-x-4">
+                            <div class="flex flex-col items-center">
+                                <div class="w-10 h-10 bg-blue-500 text-white rounded-full flex items-center justify-center font-bold">
+                                    ${index + 1}
+                                </div>
+                                <div class="w-0.5 h-16 bg-gray-300 dark:bg-gray-600 mt-2"></div>
+                            </div>
+                            <div class="flex-1">
+                                <h4 class="font-semibold text-gray-900 dark:text-white mb-2">${phase.phase}</h4>
+                                <p class="text-gray-600 dark:text-gray-400 text-sm mb-3">${phase.description}</p>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                    ${phase.recommendations.map(rec => `
+                                        <div class="flex items-center space-x-2 text-sm">
+                                            <i class="fas fa-check-circle text-green-500"></i>
+                                            <span class="text-gray-700 dark:text-gray-300">${rec}</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    }
+
+    function showError() {
+        const container = document.getElementById('recommendationsResults');
+        container.innerHTML = `
+            <div class="card p-6 text-center">
+                <i class="fas fa-exclamation-triangle text-red-500 text-4xl mb-4"></i>
+                <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">Generation Error</h3>
+                <p class="text-gray-600 dark:text-gray-400 mb-4">Failed to generate recommendations</p>
+                <button onclick="generateRecommendations()" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg">
+                    Try Again
+                </button>
+            </div>
+        `;
+    }
+
+    function generateAIData(focusArea, priority, timeframe) {
+        // Filter recommendations based on user selection
+        const allRecommendations = [
+            // High Impact
+            {
+                title: "Optimize Onboarding Flow",
+                description: "Users drop off during onboarding. Simplify the process and add progress indicators to improve completion rates.",
+                impact: 25,
+                effort: "Medium Effort",
+                area: "Retention",
+                priority: "high",
+                icon: "fa-user-plus"
+            },
+            {
+                title: "Implement Personalized Recommendations",
+                description: "Add AI-powered product recommendations to increase average order value and engagement.",
+                impact: 18,
+                effort: "High Effort",
+                area: "Revenue",
+                priority: "high",
+                icon: "fa-magic"
+            },
+            {
+                title: "Improve Mobile Experience",
+                description: "40% of mobile users experience slow load times. Optimize images and implement lazy loading.",
+                impact: 22,
+                effort: "Medium Effort",
+                area: "Engagement",
+                priority: "high",
+                icon: "fa-mobile-alt"
+            },
+
+            // Medium Impact
+            {
+                title: "Add Social Proof Elements",
+                description: "Display customer reviews and testimonials to build trust and increase conversion rates.",
+                impact: 12,
+                effort: "Low Effort",
+                area: "Conversion",
+                priority: "medium",
+                icon: "fa-star"
+            },
+            {
+                title: "Create Email Automation Series",
+                description: "Set up automated email sequences for abandoned carts and inactive users.",
+                impact: 15,
+                effort: "Medium Effort",
+                area: "Retention",
+                priority: "medium",
+                icon: "fa-envelope"
+            },
+            {
+                title: "Optimize Checkout Process",
+                description: "Reduce form fields and add guest checkout option to decrease cart abandonment.",
+                impact: 14,
+                effort: "Medium Effort",
+                area: "Conversion",
+                priority: "medium",
+                icon: "fa-shopping-cart"
+            },
+            {
+                title: "Implement A/B Testing",
+                description: "Systematically test headlines, CTAs, and page layouts to optimize performance.",
+                impact: 10,
+                effort: "High Effort",
+                area: "Conversion",
+                priority: "medium",
+                icon: "fa-vial"
+            },
+
+            // Low Impact / Quick Wins
+            {
+                title: "Add Live Chat Support",
+                description: "Implement real-time customer support to address questions and reduce bounce rates.",
+                impact: 8,
+                effort: "Low Effort",
+                area: "Engagement",
+                priority: "low",
+                icon: "fa-comments"
+            },
+            {
+                title: "Improve Page Load Speed",
+                description: "Optimize website performance by compressing images and minimizing HTTP requests.",
+                impact: 6,
+                effort: "Low Effort",
+                area: "Engagement",
+                priority: "low",
+                icon: "fa-tachometer-alt"
+            },
+            {
+                title: "Add Exit-Intent Popups",
+                description: "Capture leaving visitors with special offers or newsletter signups.",
+                impact: 5,
+                effort: "Low Effort",
+                area: "Conversion",
+                priority: "low",
+                icon: "fa-door-open"
+            },
+            {
+                title: "Create FAQ Section",
+                description: "Address common customer questions to reduce support tickets and build trust.",
+                impact: 4,
+                effort: "Low Effort",
+                area: "Engagement",
+                priority: "low",
+                icon: "fa-question-circle"
+            },
+            {
+                title: "Optimize Meta Descriptions",
+                description: "Improve SEO and click-through rates with compelling meta descriptions.",
+                impact: 3,
+                effort: "Low Effort",
+                area: "Conversion",
+                priority: "low",
+                icon: "fa-search"
+            }
+        ];
+
+        // Filter based on user selection
+        let filteredRecs = allRecommendations;
+        if (focusArea !== 'all') {
+            filteredRecs = filteredRecs.filter(rec => rec.area.toLowerCase() === focusArea);
+        }
+        if (priority !== 'all') {
+            filteredRecs = filteredRecs.filter(rec => rec.priority === priority);
+        }
+
+        // Implementation roadmap
+        const roadmap = [
+            {
+                phase: "Immediate Actions (Week 1-2)",
+                description: "Quick wins with high impact that can be implemented immediately",
+                recommendations: [
+                    "Add social proof elements",
+                    "Optimize meta descriptions",
+                    "Implement exit-intent popups"
+                ]
+            },
+            {
+                phase: "Short-term Improvements (Week 3-4)",
+                description: "Medium effort tasks that require some development work",
+                recommendations: [
+                    "Optimize onboarding flow",
+                    "Add live chat support",
+                    "Create FAQ section"
+                ]
+            },
+            {
+                phase: "Long-term Strategy (Month 2-3)",
+                description: "High impact projects requiring significant development effort",
+                recommendations: [
+                    "Implement personalized recommendations",
+                    "Create email automation series",
+                    "Set up A/B testing framework"
+                ]
+            }
+        ];
+
+        return {
+            recommendations: filteredRecs,
+            summary: {
+                total_recommendations: filteredRecs.length,
+                high_impact: filteredRecs.filter(rec => rec.priority === 'high').length,
+                estimated_impact: Math.round(filteredRecs.reduce((sum, rec) => sum + rec.impact, 0) / filteredRecs.length),
+                implementation_time: "2-4 weeks"
+            },
+            roadmap: roadmap
+        };
+    }
+</script>
+
+<style>
+.loading-spinner {
+    border: 3px solid #f3f4f6;
+    border-top: 3px solid #3b82f6;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.card {
+    background: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+}
+
+.dark .card {
+    background: #1f2937;
+}
+
+/* Animation for recommendation cards */
+.bg-red-50, .bg-yellow-50, .bg-green-50 {
+    transition: all 0.3s ease;
+}
+
+.bg-red-50:hover, .bg-yellow-50:hover, .bg-green-50:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+</style>
+{% endblock %}

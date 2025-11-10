@@ -1,0 +1,688 @@
+{% extends "base.html" %}
+
+{% block title %}Notion Integration - AI Analytics Dashboard{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="mb-8 fade-in">
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-800 dark:text-white">Notion Integration</h1>
+            <p class="text-gray-600 dark:text-gray-400 mt-2">Sync your analytics data directly to Notion</p>
+        </div>
+        <div class="flex items-center space-x-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 px-4 py-2 rounded-lg">
+            <i class="fab fa-notion text-lg"></i>
+            <span class="font-medium">Demo Mode</span>
+        </div>
+    </div>
+</div>
+
+<!-- Connection Status -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+    <!-- Connection Card -->
+    <div class="card p-6 integration-status">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Connection Status</h3>
+            <div class="flex items-center space-x-2">
+                <div class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                <span class="text-sm text-green-600 dark:text-green-400">Connected</span>
+            </div>
+        </div>
+        <div class="space-y-3">
+            <div class="flex justify-between">
+                <span class="text-gray-600 dark:text-gray-400">Workspace</span>
+                <span class="font-medium text-gray-800 dark:text-white">Demo Workspace</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-gray-600 dark:text-gray-400">Database</span>
+                <span class="font-medium text-gray-800 dark:text-white">Analytics Dashboard</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-gray-600 dark:text-gray-400">Last Sync</span>
+                <span class="font-medium text-gray-800 dark:text-white" id="lastSyncTime">Never</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sync Statistics -->
+    <div class="card p-6">
+        <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Sync Statistics</h3>
+        <div class="space-y-4">
+            <div>
+                <div class="flex justify-between mb-1">
+                    <span class="text-gray-600 dark:text-gray-400">Total Syncs</span>
+                    <span class="font-medium text-gray-800 dark:text-white" id="totalSyncs">0</span>
+                </div>
+                <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                    <div class="bg-blue-600 h-2 rounded-full" style="width: 0%" id="syncProgress"></div>
+                </div>
+            </div>
+            <div>
+                <div class="flex justify-between mb-1">
+                    <span class="text-gray-600 dark:text-gray-400">Success Rate</span>
+                    <span class="font-medium text-green-600 dark:text-green-400" id="successRate">100%</span>
+                </div>
+                <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                    <div class="bg-green-500 h-2 rounded-full" style="width: 100%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="card p-6">
+        <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Quick Actions</h3>
+        <div class="space-y-3">
+            <button id="syncNowBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2">
+                <i class="fas fa-sync-alt"></i>
+                <span>Sync Now</span>
+            </button>
+            <button id="testConnectionBtn" class="w-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2">
+                <i class="fas fa-plug"></i>
+                <span>Test Connection</span>
+            </button>
+            <button id="createDatabaseBtn" class="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2">
+                <i class="fas fa-plus"></i>
+                <span>Create Database</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Integration Setup -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+    <!-- Connection Form -->
+    <div class="card p-6">
+        <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Connect to Notion</h3>
+        <form id="notionConnectionForm" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Notion Integration Token
+                </label>
+                <div class="relative">
+                    <input
+                        type="password"
+                        id="notionToken"
+                        placeholder="ntn_..."
+                        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                        required
+                    >
+                    <button type="button" id="toggleTokenVisibility" class="absolute right-3 top-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Get your integration token from <a href="https://www.notion.so/my-integrations" target="_blank" class="text-blue-600 hover:text-blue-800 dark:text-blue-400">Notion Integrations</a>
+                </p>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Database ID (Optional)
+                </label>
+                <input
+                    type="text"
+                    id="databaseId"
+                    placeholder="Leave empty to create new database"
+                    class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                >
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Sync Metrics
+                </label>
+                <div class="space-y-2">
+                    <div class="flex items-center">
+                        <input type="checkbox" id="syncDAU" class="mr-2 rounded text-blue-600 focus:ring-blue-500" checked>
+                        <label for="syncDAU" class="text-gray-700 dark:text-gray-300">Daily Active Users (DAU)</label>
+                    </div>
+                    <div class="flex items-center">
+                        <input type="checkbox" id="syncMAU" class="mr-2 rounded text-blue-600 focus:ring-blue-500" checked>
+                        <label for="syncMAU" class="text-gray-700 dark:text-gray-300">Monthly Active Users (MAU)</label>
+                    </div>
+                    <div class="flex items-center">
+                        <input type="checkbox" id="syncRetention" class="mr-2 rounded text-blue-600 focus:ring-blue-500" checked>
+                        <label for="syncRetention" class="text-gray-700 dark:text-gray-300">Retention Rate</label>
+                    </div>
+                    <div class="flex items-center">
+                        <input type="checkbox" id="syncConversion" class="mr-2 rounded text-blue-600 focus:ring-blue-500">
+                        <label for="syncConversion" class="text-gray-700 dark:text-gray-300">Conversion Rate</label>
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2">
+                <i class="fas fa-link"></i>
+                <span>Connect to Notion</span>
+            </button>
+        </form>
+    </div>
+
+    <!-- Integration Guide -->
+    <div class="card p-6">
+        <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Setup Guide</h3>
+        <div class="space-y-4">
+            <div class="flex items-start space-x-3">
+                <div class="flex-shrink-0 w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
+                    <span class="text-blue-600 dark:text-blue-400 font-semibold">1</span>
+                </div>
+                <div>
+                    <h4 class="font-medium text-gray-800 dark:text-white">Create Notion Integration</h4>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                        Visit <a href="https://www.notion.so/my-integrations" target="_blank" class="text-blue-600 hover:text-blue-800 dark:text-blue-400">Notion Integrations</a> and create a new integration
+                    </p>
+                </div>
+            </div>
+
+            <div class="flex items-start space-x-3">
+                <div class="flex-shrink-0 w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
+                    <span class="text-blue-600 dark:text-blue-400 font-semibold">2</span>
+                </div>
+                <div>
+                    <h4 class="font-medium text-gray-800 dark:text-white">Copy Integration Token</h4>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                        Copy the "Internal Integration Token" starting with "ntn_" and paste it above
+                    </p>
+                </div>
+            </div>
+
+            <div class="flex items-start space-x-3">
+                <div class="flex-shrink-0 w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
+                    <span class="text-blue-600 dark:text-blue-400 font-semibold">3</span>
+                </div>
+                <div>
+                    <h4 class="font-medium text-gray-800 dark:text-white">Share Database (Optional)</h4>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                        If using existing database, share it with your integration in Notion
+                    </p>
+                </div>
+            </div>
+
+            <div class="flex items-start space-x-3">
+                <div class="flex-shrink-0 w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
+                    <span class="text-blue-600 dark:text-blue-400 font-semibold">4</span>
+                </div>
+                <div>
+                    <h4 class="font-medium text-gray-800 dark:text-white">Start Syncing</h4>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                        Click "Connect to Notion" and start syncing your analytics data
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+            <div class="flex items-start space-x-2">
+                <i class="fas fa-info-circle text-yellow-600 dark:text-yellow-400 mt-0.5"></i>
+                <div>
+                    <h4 class="font-medium text-yellow-800 dark:text-yellow-300">Demo Mode</h4>
+                    <p class="text-sm text-yellow-700 dark:text-yellow-400 mt-1">
+                        This is a demo integration. No actual API calls are made to Notion. All operations are simulated for demonstration purposes.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Sync Activity -->
+<div class="card p-6 mb-8">
+    <div class="flex items-center justify-between mb-6">
+        <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Recent Sync Activity</h3>
+        <button id="refreshActivity" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 flex items-center space-x-2">
+            <i class="fas fa-refresh"></i>
+            <span>Refresh</span>
+        </button>
+    </div>
+
+    <div class="overflow-x-auto">
+        <table class="w-full">
+            <thead>
+                <tr class="border-b border-gray-200 dark:border-gray-700">
+                    <th class="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">Date & Time</th>
+                    <th class="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">Status</th>
+                    <th class="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">Records Synced</th>
+                    <th class="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">Duration</th>
+                    <th class="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="syncActivityTable">
+                <tr class="border-b border-gray-100 dark:border-gray-800">
+                    <td class="py-4 px-4 text-sm text-gray-600 dark:text-gray-400" colspan="5">No sync activity yet</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Sync Configuration -->
+<div class="card p-6">
+    <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Sync Configuration</h3>
+    <form id="syncConfigForm">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <h4 class="font-medium text-gray-800 dark:text-white mb-3">Sync Frequency</h4>
+                <div class="space-y-2">
+                    <div class="flex items-center">
+                        <input type="radio" id="syncManual" name="syncFrequency" value="manual" class="mr-2 text-blue-600 focus:ring-blue-500" checked>
+                        <label for="syncManual" class="text-gray-700 dark:text-gray-300">Manual Only</label>
+                    </div>
+                    <div class="flex items-center">
+                        <input type="radio" id="syncDaily" name="syncFrequency" value="daily" class="mr-2 text-blue-600 focus:ring-blue-500">
+                        <label for="syncDaily" class="text-gray-700 dark:text-gray-300">Daily</label>
+                    </div>
+                    <div class="flex items-center">
+                        <input type="radio" id="syncWeekly" name="syncFrequency" value="weekly" class="mr-2 text-blue-600 focus:ring-blue-500">
+                        <label for="syncWeekly" class="text-gray-700 dark:text-gray-300">Weekly</label>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <h4 class="font-medium text-gray-800 dark:text-white mb-3">Data Retention</h4>
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="text-gray-700 dark:text-gray-300">Keep sync history for</span>
+                        <select name="historyRetention" class="border border-gray-300 dark:border-gray-600 rounded px-3 py-1 text-sm bg-white dark:bg-gray-700 text-gray-800 dark:text-white">
+                            <option value="30">30 days</option>
+                            <option value="90">90 days</option>
+                            <option value="365">1 year</option>
+                            <option value="forever">Forever</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center justify-between mt-4">
+                        <span class="text-gray-700 dark:text-gray-300">Auto-delete failed syncs after</span>
+                        <select name="failedSyncsRetention" class="border border-gray-300 dark:border-gray-600 rounded px-3 py-1 text-sm bg-white dark:bg-gray-700 text-gray-800 dark:text-white">
+                            <option value="7">7 days</option>
+                            <option value="30">30 days</option>
+                            <option value="never">Never</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+            <button type="submit" class="bg-gray-800 hover:bg-gray-900 dark:bg-gray-700 dark:hover:bg-gray-600 text-white py-2 px-6 rounded-lg transition-colors">
+                Save Configuration
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Sync Details Modal -->
+<div id="syncDetailsModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Sync Details</h3>
+            <button id="closeModal" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div id="syncDetailsContent" class="space-y-3">
+            <!-- Details will be populated here -->
+        </div>
+        <div class="mt-6 flex justify-end">
+            <button id="closeModalBtn" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors">
+                Close
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Toggle token visibility
+        const toggleTokenBtn = document.getElementById('toggleTokenVisibility');
+        const tokenInput = document.getElementById('notionToken');
+        const tokenIcon = toggleTokenBtn.querySelector('i');
+
+        toggleTokenBtn.addEventListener('click', function() {
+            if (tokenInput.type === 'password') {
+                tokenInput.type = 'text';
+                tokenIcon.classList.remove('fa-eye');
+                tokenIcon.classList.add('fa-eye-slash');
+            } else {
+                tokenInput.type = 'password';
+                tokenIcon.classList.remove('fa-eye-slash');
+                tokenIcon.classList.add('fa-eye');
+            }
+        });
+
+        // Notion connection form
+        const notionForm = document.getElementById('notionConnectionForm');
+        notionForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const token = tokenInput.value;
+            const databaseId = document.getElementById('databaseId').value;
+
+            if (!token.startsWith('ntn_')) {
+                toast.show('Please enter a valid Notion integration token starting with "ntn_"', 'error');
+                return;
+            }
+
+            // Show loading state
+            const submitBtn = notionForm.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Connecting...</span>';
+            submitBtn.disabled = true;
+
+            try {
+                // Simulate API call
+                await new Promise(resolve => setTimeout(resolve, 2000));
+
+                // Demo success
+                toast.show('Successfully connected to Notion!', 'success');
+
+                // Update connection status
+                document.getElementById('lastSyncTime').textContent = 'Just now';
+                document.getElementById('totalSyncs').textContent = '1';
+                document.getElementById('syncProgress').style.width = '25%';
+
+                // Add sync activity
+                addSyncActivity({
+                    timestamp: new Date().toISOString(),
+                    status: 'success',
+                    records: 15,
+                    duration: '2.1s',
+                    details: {
+                        metrics: ['DAU', 'MAU', 'Retention Rate'],
+                        database: 'Analytics Dashboard',
+                        workspace: 'Demo Workspace'
+                    }
+                });
+
+            } catch (error) {
+                toast.show('Failed to connect to Notion: ' + error.message, 'error');
+            } finally {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            }
+        });
+
+        // Sync now button
+        document.getElementById('syncNowBtn').addEventListener('click', async function() {
+            const btn = this;
+            const originalText = btn.innerHTML;
+
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Syncing...</span>';
+            btn.disabled = true;
+
+            try {
+                // Simulate sync process
+                await new Promise(resolve => setTimeout(resolve, 3000));
+
+                toast.show('Data synced successfully to Notion!', 'success');
+
+                // Update stats
+                const totalSyncs = parseInt(document.getElementById('totalSyncs').textContent) + 1;
+                document.getElementById('totalSyncs').textContent = totalSyncs;
+                document.getElementById('lastSyncTime').textContent = 'Just now';
+                document.getElementById('syncProgress').style.width = Math.min(totalSyncs * 25, 100) + '%';
+
+                // Add sync activity
+                addSyncActivity({
+                    timestamp: new Date().toISOString(),
+                    status: 'success',
+                    records: Math.floor(Math.random() * 20) + 10,
+                    duration: (Math.random() * 2 + 1).toFixed(1) + 's',
+                    details: {
+                        metrics: ['DAU', 'MAU', 'Retention Rate'],
+                        database: 'Analytics Dashboard',
+                        workspace: 'Demo Workspace',
+                        pageId: 'demo_page_' + Date.now()
+                    }
+                });
+
+            } catch (error) {
+                toast.show('Sync failed: ' + error.message, 'error');
+
+                // Add failed sync activity
+                addSyncActivity({
+                    timestamp: new Date().toISOString(),
+                    status: 'failed',
+                    records: 0,
+                    duration: '0s',
+                    details: {
+                        error: 'Connection timeout',
+                        retryCount: 3
+                    }
+                });
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        });
+
+        // Test connection button
+        document.getElementById('testConnectionBtn').addEventListener('click', async function() {
+            const btn = this;
+            const originalText = btn.innerHTML;
+
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Testing...</span>';
+
+            try {
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                toast.show('Connection test successful!', 'success');
+            } catch (error) {
+                toast.show('Connection test failed', 'error');
+            } finally {
+                btn.innerHTML = originalText;
+            }
+        });
+
+        // Create database button
+        document.getElementById('createDatabaseBtn').addEventListener('click', async function() {
+            const btn = this;
+            const originalText = btn.innerHTML;
+
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Creating...</span>';
+
+            try {
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                toast.show('Analytics database created successfully in Notion!', 'success');
+            } catch (error) {
+                toast.show('Failed to create database', 'error');
+            } finally {
+                btn.innerHTML = originalText;
+            }
+        });
+
+        // Refresh activity
+        document.getElementById('refreshActivity').addEventListener('click', function() {
+            toast.show('Activity refreshed', 'info');
+        });
+
+        // Save Configuration Form
+        const syncConfigForm = document.getElementById('syncConfigForm');
+        syncConfigForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const formData = new FormData(syncConfigForm);
+            const syncFrequency = formData.get('syncFrequency');
+            const historyRetention = formData.get('historyRetention');
+            const failedSyncsRetention = formData.get('failedSyncsRetention');
+
+            // Show loading state
+            const submitBtn = syncConfigForm.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Saving...</span>';
+            submitBtn.disabled = true;
+
+            try {
+                // Simulate API call to save configuration
+                await new Promise(resolve => setTimeout(resolve, 1500));
+
+                toast.show('Configuration saved successfully!', 'success');
+
+                // Log the saved configuration
+                console.log('Sync Configuration Saved:', {
+                    syncFrequency,
+                    historyRetention,
+                    failedSyncsRetention
+                });
+
+            } catch (error) {
+                toast.show('Failed to save configuration', 'error');
+            } finally {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            }
+        });
+
+        // Modal functionality
+        const syncDetailsModal = document.getElementById('syncDetailsModal');
+        const syncDetailsContent = document.getElementById('syncDetailsContent');
+        const closeModal = document.getElementById('closeModal');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+
+        function showSyncDetails(activity) {
+            let detailsHTML = '';
+
+            if (activity.status === 'success') {
+                detailsHTML = `
+                    <div class="space-y-3">
+                        <div class="flex justify-between">
+                            <span class="text-gray-600 dark:text-gray-400">Status:</span>
+                            <span class="text-green-600 dark:text-green-400 font-medium">Success</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600 dark:text-gray-400">Records Synced:</span>
+                            <span class="font-medium">${activity.records}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600 dark:text-gray-400">Duration:</span>
+                            <span class="font-medium">${activity.duration}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600 dark:text-gray-400">Database:</span>
+                            <span class="font-medium">${activity.details.database}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600 dark:text-gray-400">Workspace:</span>
+                            <span class="font-medium">${activity.details.workspace}</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-600 dark:text-gray-400">Metrics Synced:</span>
+                            <div class="mt-1 flex flex-wrap gap-1">
+                                ${activity.details.metrics.map(metric =>
+                                    `<span class="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-300 text-xs px-2 py-1 rounded">${metric}</span>`
+                                ).join('')}
+                            </div>
+                        </div>
+                        ${activity.details.pageId ? `
+                        <div class="flex justify-between">
+                            <span class="text-gray-600 dark:text-gray-400">Notion Page ID:</span>
+                            <span class="font-mono text-sm">${activity.details.pageId}</span>
+                        </div>
+                        ` : ''}
+                    </div>
+                `;
+            } else {
+                detailsHTML = `
+                    <div class="space-y-3">
+                        <div class="flex justify-between">
+                            <span class="text-gray-600 dark:text-gray-400">Status:</span>
+                            <span class="text-red-600 dark:text-red-400 font-medium">Failed</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600 dark:text-gray-400">Records Synced:</span>
+                            <span class="font-medium">${activity.records}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600 dark:text-gray-400">Duration:</span>
+                            <span class="font-medium">${activity.duration}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600 dark:text-gray-400">Error:</span>
+                            <span class="text-red-600 dark:text-red-400 font-medium">${activity.details.error}</span>
+                        </div>
+                        ${activity.details.retryCount ? `
+                        <div class="flex justify-between">
+                            <span class="text-gray-600 dark:text-gray-400">Retry Attempts:</span>
+                            <span class="font-medium">${activity.details.retryCount}</span>
+                        </div>
+                        ` : ''}
+                    </div>
+                `;
+            }
+
+            syncDetailsContent.innerHTML = detailsHTML;
+            syncDetailsModal.classList.remove('hidden');
+        }
+
+        // Close modal events
+        closeModal.addEventListener('click', function() {
+            syncDetailsModal.classList.add('hidden');
+        });
+
+        closeModalBtn.addEventListener('click', function() {
+            syncDetailsModal.classList.add('hidden');
+        });
+
+        // Close modal when clicking outside
+        syncDetailsModal.addEventListener('click', function(e) {
+            if (e.target === syncDetailsModal) {
+                syncDetailsModal.classList.add('hidden');
+            }
+        });
+
+        // Helper function to add sync activity
+        function addSyncActivity(activity) {
+            const table = document.getElementById('syncActivityTable');
+
+            // Remove "no activity" row if it exists
+            if (table.children.length === 1 && table.children[0].textContent.includes('No sync activity')) {
+                table.innerHTML = '';
+            }
+
+            const row = document.createElement('tr');
+            row.className = 'border-b border-gray-100 dark:border-gray-800';
+
+            const statusClass = activity.status === 'success' ?
+                'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
+                'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
+
+            row.innerHTML = `
+                <td class="py-4 px-4 text-sm text-gray-600 dark:text-gray-400">
+                    ${new Date(activity.timestamp).toLocaleString()}
+                </td>
+                <td class="py-4 px-4">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusClass}">
+                        ${activity.status === 'success' ? 'Success' : 'Failed'}
+                    </span>
+                </td>
+                <td class="py-4 px-4 text-sm text-gray-600 dark:text-gray-400">
+                    ${activity.records} records
+                </td>
+                <td class="py-4 px-4 text-sm text-gray-600 dark:text-gray-400">
+                    ${activity.duration}
+                </td>
+                <td class="py-4 px-4">
+                    <button class="view-details-btn text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 text-sm" data-activity='${JSON.stringify(activity)}'>
+                        View Details
+                    </button>
+                </td>
+            `;
+
+            // Add to top of table
+            table.insertBefore(row, table.firstChild);
+
+            // Add event listener to the view details button
+            row.querySelector('.view-details-btn').addEventListener('click', function() {
+                const activityData = JSON.parse(this.getAttribute('data-activity'));
+                showSyncDetails(activityData);
+            });
+
+            // Limit to 10 rows
+            if (table.children.length > 10) {
+                table.removeChild(table.lastChild);
+            }
+        }
+    });
+</script>
+{% endblock %}

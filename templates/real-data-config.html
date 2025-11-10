@@ -1,0 +1,658 @@
+{% extends "base.html" %}
+
+{% block title %}Real Data Configuration - AI Analytics{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">Real Data Configuration</h1>
+        <p class="text-gray-600 dark:text-gray-400">Connect and manage your data sources for enhanced analytics</p>
+    </div>
+
+    <!-- Status Overview -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div class="card p-6 text-center">
+            <div class="text-2xl font-bold text-green-600" id="realDataStatus">Enabled</div>
+            <div class="text-sm text-gray-600 dark:text-gray-400">Real Data Status</div>
+        </div>
+        <div class="card p-6 text-center">
+            <div class="text-2xl font-bold text-blue-600" id="dataSourcesCount">-</div>
+            <div class="text-sm text-gray-600 dark:text-gray-400">Data Sources</div>
+        </div>
+        <div class="card p-6 text-center">
+            <div class="text-2xl font-bold text-purple-600" id="primarySource">-</div>
+            <div class="text-sm text-gray-600 dark:text-gray-400">Primary Source</div>
+        </div>
+        <div class="card p-6 text-center">
+            <div class="text-2xl font-bold text-orange-600" id="dataQuality">High</div>
+            <div class="text-sm text-gray-600 dark:text-gray-400">Data Quality</div>
+        </div>
+    </div>
+
+    <!-- Configuration Toggle -->
+    <div class="card p-6 mb-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Real Data Integration</h3>
+                <p class="text-gray-600 dark:text-gray-400">Enable real data sources for accurate analytics and insights</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="realDataToggle" class="sr-only peer" checked>
+                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                <span class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300">Enabled</span>
+            </label>
+        </div>
+    </div>
+
+    <!-- Data Sources Section -->
+    <div class="card p-6 mb-6">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Data Sources</h3>
+            <button onclick="openDataSourceModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
+                <i class="fas fa-plus mr-2"></i>Add Data Source
+            </button>
+        </div>
+
+        <div id="dataSourcesList" class="space-y-4">
+            <!-- Data sources will be loaded here -->
+        </div>
+
+        <div id="dataSourcesLoading" class="text-center py-8">
+            <div class="loading-spinner mx-auto mb-4"></div>
+            <p class="text-gray-600 dark:text-gray-400">Loading data sources...</p>
+        </div>
+    </div>
+
+    <!-- Connection Testing -->
+    <div class="card p-6">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Connection Status</h3>
+        <div id="connectionStatus" class="space-y-3">
+            <!-- Connection status will be loaded here -->
+        </div>
+    </div>
+</div>
+
+<!-- Data Source Modal -->
+<div id="dataSourceModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+    <div class="bg-white dark:bg-gray-800 rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white" id="modalTitle">Add Data Source</h3>
+        </div>
+
+        <form id="dataSourceForm" class="p-6 space-y-4">
+            <input type="hidden" id="dataSourceId">
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Data Source Type</label>
+                <select id="type" required onchange="toggleConnectionFields()"
+                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                    <option value="">Select type</option>
+                    <option value="postgresql">PostgreSQL</option>
+                    <option value="mysql">MySQL</option>
+                    <option value="csv">CSV File</option>
+                    <option value="json">JSON File</option>
+                    <option value="api">API</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Name *</label>
+                <input type="text" id="name" required
+                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                       placeholder="My Database">
+            </div>
+
+            <!-- Database Fields -->
+            <div id="databaseFields" class="hidden space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Host</label>
+                        <input type="text" id="host"
+                               class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                               placeholder="localhost">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Port</label>
+                        <input type="number" id="port"
+                               class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                               placeholder="5432">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Database</label>
+                    <input type="text" id="database"
+                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                           placeholder="database_name">
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Username</label>
+                        <input type="text" id="username"
+                               class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                               placeholder="username">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Password</label>
+                        <input type="password" id="password"
+                               class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                               placeholder="password">
+                    </div>
+                </div>
+            </div>
+
+            <!-- File Fields -->
+            <div id="fileFields" class="hidden">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">File Path</label>
+                    <input type="text" id="file_path"
+                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                           placeholder="/path/to/your/file.csv">
+                </div>
+            </div>
+
+            <!-- API Fields -->
+            <div id="apiFields" class="hidden space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">API URL</label>
+                    <input type="url" id="api_url"
+                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                           placeholder="https://api.example.com/data">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">API Key</label>
+                    <input type="password" id="api_key"
+                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                           placeholder="Your API key">
+                </div>
+            </div>
+
+            <!-- Test Connection -->
+            <div id="testConnection" class="hidden">
+                <button type="button" onclick="testConnection()" class="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg transition-colors">
+                    <i class="fas fa-plug mr-2"></i>Test Connection
+                </button>
+                <div id="testResult" class="mt-2 hidden"></div>
+            </div>
+        </form>
+
+        <div class="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end space-x-3">
+            <button onclick="closeDataSourceModal()" class="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors">
+                Cancel
+            </button>
+            <button onclick="saveDataSource()" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
+                Save Data Source
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let dataSources = [];
+    let nextDataSourceId = 1;
+    let realDataEnabled = true;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeDataSources();
+        loadRealDataStatus();
+        loadDataSources();
+
+        // Toggle real data integration
+        document.getElementById('realDataToggle').addEventListener('change', function() {
+            updateRealDataConfig(this.checked);
+        });
+    });
+
+    function initializeDataSources() {
+        const savedDataSources = localStorage.getItem('realDataSources');
+        if (!savedDataSources) {
+            // Create sample data sources
+            const sampleDataSources = [
+                {
+                    id: '1',
+                    name: 'Production Database',
+                    type: 'postgresql',
+                    host: 'localhost',
+                    port: 5432,
+                    database: 'analytics_db',
+                    username: 'admin',
+                    is_active: true,
+                    is_primary: true,
+                    last_used: new Date().toISOString(),
+                    created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+                },
+                {
+                    id: '2',
+                    name: 'User Analytics API',
+                    type: 'api',
+                    api_url: 'https://api.analytics.com/v1/data',
+                    is_active: true,
+                    is_primary: false,
+                    last_used: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+                    created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()
+                }
+            ];
+
+            localStorage.setItem('realDataSources', JSON.stringify(sampleDataSources));
+            nextDataSourceId = 3;
+        } else {
+            // Find the highest ID from existing data
+            const existingDataSources = JSON.parse(savedDataSources);
+            const maxId = Math.max(...existingDataSources.map(source => parseInt(source.id) || 0));
+            nextDataSourceId = maxId + 1;
+        }
+    }
+
+    function loadRealDataStatus() {
+        try {
+            // Load from localStorage
+            const savedDataSources = localStorage.getItem('realDataSources');
+            dataSources = savedDataSources ? JSON.parse(savedDataSources) : [];
+
+            const primarySource = dataSources.find(source => source.is_primary);
+            const activeSources = dataSources.filter(source => source.is_active);
+
+            document.getElementById('realDataStatus').textContent =
+                realDataEnabled ? 'Enabled' : 'Disabled';
+            document.getElementById('realDataStatus').className =
+                `text-2xl font-bold ${realDataEnabled ? 'text-green-600' : 'text-red-600'}`;
+
+            document.getElementById('dataSourcesCount').textContent = dataSources.length;
+            document.getElementById('primarySource').textContent = primarySource ? primarySource.name : 'None';
+            document.getElementById('realDataToggle').checked = realDataEnabled;
+        } catch (error) {
+            console.error('Error loading real data status:', error);
+        }
+    }
+
+    function loadDataSources() {
+        const loadingElement = document.getElementById('dataSourcesLoading');
+        const listElement = document.getElementById('dataSourcesList');
+
+        // Show loading state
+        if (loadingElement) loadingElement.classList.remove('hidden');
+        if (listElement) listElement.innerHTML = '';
+
+        try {
+            // Load from localStorage
+            const savedDataSources = localStorage.getItem('realDataSources');
+            dataSources = savedDataSources ? JSON.parse(savedDataSources) : [];
+
+            renderDataSources(dataSources);
+            updateConnectionStatus(dataSources);
+        } catch (error) {
+            console.error('Error loading data sources:', error);
+            showToast('Failed to load data sources', 'error');
+        } finally {
+            if (loadingElement) loadingElement.classList.add('hidden');
+        }
+    }
+
+    function renderDataSources(dataSources) {
+        const container = document.getElementById('dataSourcesList');
+
+        if (!dataSources || dataSources.length === 0) {
+            container.innerHTML = `
+                <div class="text-center py-8">
+                    <i class="fas fa-database text-4xl text-gray-400 mb-4"></i>
+                    <p class="text-gray-600 dark:text-gray-400">No data sources configured</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-500 mt-2">Add your first data source to get started with real data analytics</p>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = dataSources.map(source => {
+            const connectionStatus = source.is_active ? 'Connected' : 'Disconnected';
+            const statusColor = source.is_active ? 'green' : 'red';
+
+            return `
+            <div class="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+                <div class="flex items-center space-x-4">
+                    <div class="w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
+                        <i class="fas fa-${getDataSourceIcon(source.type)} text-blue-600 dark:text-blue-400 text-xl"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-gray-900 dark:text-white">${source.name}</h4>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 capitalize">
+                            ${source.type} • ${source.host || source.api_url || 'Local file'}
+                        </p>
+                        <div class="flex items-center space-x-2 mt-1">
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-${statusColor}-100 text-${statusColor}-800 dark:bg-${statusColor}-900 dark:text-${statusColor}-300">
+                                <i class="fas fa-circle mr-1"></i>
+                                ${connectionStatus}
+                            </span>
+                            ${source.is_primary ? `
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">
+                                    Primary
+                                </span>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center space-x-2">
+                    <button onclick="testDataSource('${source.id}')" class="px-3 py-2 text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300 transition-colors">
+                        <i class="fas fa-plug"></i>
+                    </button>
+                    <button onclick="setPrimarySource('${source.id}')" class="px-3 py-2 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors">
+                        <i class="fas fa-star"></i>
+                    </button>
+                    <button onclick="deleteDataSource('${source.id}')" class="px-3 py-2 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 transition-colors">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+            `;
+        }).join('');
+    }
+
+    function updateConnectionStatus(dataSources) {
+        const container = document.getElementById('connectionStatus');
+
+        if (!dataSources || dataSources.length === 0) {
+            container.innerHTML = `
+                <div class="text-center py-4 text-gray-500 dark:text-gray-400">
+                    No data sources to display
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = dataSources.map(source => {
+            const status = source.is_active ? 'Connected' : 'Disconnected';
+            const statusColor = source.is_active ? 'green' : 'red';
+            const statusIcon = source.is_active ? 'check-circle' : 'exclamation-circle';
+
+            return `
+            <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                <div class="flex items-center space-x-3">
+                    <i class="fas fa-${getDataSourceIcon(source.type)} text-gray-600 dark:text-gray-400"></i>
+                    <span class="font-medium text-gray-900 dark:text-white">${source.name}</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-${statusColor}-100 text-${statusColor}-800 dark:bg-${statusColor}-900 dark:text-${statusColor}-300">
+                        <i class="fas fa-${statusIcon} mr-1"></i>
+                        ${status}
+                    </span>
+                    <span class="text-sm text-gray-600 dark:text-gray-400">
+                        Last used: ${formatRelativeTime(source.last_used)}
+                    </span>
+                </div>
+            </div>
+            `;
+        }).join('');
+    }
+
+    function getDataSourceIcon(type) {
+        const icons = {
+            'postgresql': 'database',
+            'mysql': 'database',
+            'csv': 'file-csv',
+            'json': 'file-code',
+            'api': 'cloud'
+        };
+        return icons[type] || 'database';
+    }
+
+    function openDataSourceModal() {
+        document.getElementById('modalTitle').textContent = 'Add Data Source';
+        document.getElementById('dataSourceForm').reset();
+        document.getElementById('dataSourceId').value = '';
+        document.getElementById('dataSourceModal').classList.remove('hidden');
+        toggleConnectionFields();
+    }
+
+    function closeDataSourceModal() {
+        document.getElementById('dataSourceModal').classList.add('hidden');
+    }
+
+    function toggleConnectionFields() {
+        const type = document.getElementById('type').value;
+
+        // Hide all fields first
+        document.getElementById('databaseFields').classList.add('hidden');
+        document.getElementById('fileFields').classList.add('hidden');
+        document.getElementById('apiFields').classList.add('hidden');
+        document.getElementById('testConnection').classList.add('hidden');
+
+        // Show relevant fields
+        if (['postgresql', 'mysql'].includes(type)) {
+            document.getElementById('databaseFields').classList.remove('hidden');
+            document.getElementById('testConnection').classList.remove('hidden');
+        } else if (['csv', 'json'].includes(type)) {
+            document.getElementById('fileFields').classList.remove('hidden');
+            document.getElementById('testConnection').classList.remove('hidden');
+        } else if (type === 'api') {
+            document.getElementById('apiFields').classList.remove('hidden');
+            document.getElementById('testConnection').classList.remove('hidden');
+        }
+    }
+
+    async function testConnection() {
+        const type = document.getElementById('type').value;
+        const name = document.getElementById('name').value.trim();
+
+        if (!name) {
+            showTestResult('Please enter a name for the data source', 'error');
+            return;
+        }
+
+        if (!type) {
+            showTestResult('Please select a data source type', 'error');
+            return;
+        }
+
+        const testResult = document.getElementById('testResult');
+        testResult.classList.remove('hidden');
+
+        // Show loading state
+        testResult.innerHTML = `
+            <div class="p-3 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-300 rounded-lg">
+                <i class="fas fa-spinner fa-spin mr-2"></i>
+                Testing connection...
+            </div>
+        `;
+
+        try {
+            // Simulate connection test with timeout
+            await new Promise((resolve, reject) => {
+                setTimeout(() => {
+                    // Simulate random success/failure for demo
+                    const success = Math.random() > 0.3; // 70% success rate
+                    if (success) {
+                        resolve();
+                    } else {
+                        reject(new Error('Connection timeout or authentication failed'));
+                    }
+                }, 2000);
+            });
+
+            showTestResult('Connection successful! Data source is ready to use.', 'success');
+        } catch (error) {
+            showTestResult(`Connection failed: ${error.message}`, 'error');
+        }
+    }
+
+    function showTestResult(message, type) {
+        const testResult = document.getElementById('testResult');
+        const bgColor = type === 'success' ? 'green' : 'red';
+        const icon = type === 'success' ? 'check-circle' : 'exclamation-circle';
+
+        testResult.innerHTML = `
+            <div class="p-3 bg-${bgColor}-100 dark:bg-${bgColor}-900 text-${bgColor}-800 dark:text-${bgColor}-300 rounded-lg">
+                <i class="fas fa-${icon} mr-2"></i>
+                ${message}
+            </div>
+        `;
+    }
+
+    function saveDataSource() {
+        const type = document.getElementById('type').value;
+        const name = document.getElementById('name').value.trim();
+
+        if (!name) {
+            showToast('Please enter a name for the data source', 'error');
+            return;
+        }
+
+        if (!type) {
+            showToast('Please select a data source type', 'error');
+            return;
+        }
+
+        const data = {
+            id: document.getElementById('dataSourceId').value || nextDataSourceId.toString(),
+            name: name,
+            type: type,
+            host: document.getElementById('host').value,
+            port: document.getElementById('port').value ? parseInt(document.getElementById('port').value) : null,
+            database: document.getElementById('database').value,
+            username: document.getElementById('username').value,
+            password: document.getElementById('password').value,
+            file_path: document.getElementById('file_path').value,
+            api_url: document.getElementById('api_url').value,
+            api_key: document.getElementById('api_key').value,
+            is_active: true,
+            is_primary: dataSources.length === 0, // First source becomes primary
+            last_used: new Date().toISOString(),
+            created_at: new Date().toISOString()
+        };
+
+        if (!document.getElementById('dataSourceId').value) {
+            // New data source
+            data.id = nextDataSourceId.toString();
+            nextDataSourceId++;
+            dataSources.unshift(data);
+        } else {
+            // Update existing data source
+            const index = dataSources.findIndex(source => source.id === data.id);
+            if (index !== -1) {
+                // Keep the original created_at
+                data.created_at = dataSources[index].created_at;
+                dataSources[index] = data;
+            } else {
+                showToast('Data source not found', 'error');
+                return;
+            }
+        }
+
+        // Save to localStorage
+        localStorage.setItem('realDataSources', JSON.stringify(dataSources));
+
+        showToast('Data source saved successfully!', 'success');
+        closeDataSourceModal();
+        loadDataSources();
+        loadRealDataStatus();
+    }
+
+    function testDataSource(sourceId) {
+        const source = dataSources.find(s => s.id === sourceId);
+        if (!source) {
+            showToast('Data source not found', 'error');
+            return;
+        }
+
+        // Simulate connection test
+        showToast(`Testing connection to ${source.name}...`, 'info');
+
+        setTimeout(() => {
+            // Random success/failure for demo
+            const success = Math.random() > 0.3;
+            if (success) {
+                source.last_used = new Date().toISOString();
+                localStorage.setItem('realDataSources', JSON.stringify(dataSources));
+                showToast(`Connection to ${source.name} successful!`, 'success');
+                loadDataSources();
+            } else {
+                showToast(`Connection to ${source.name} failed`, 'error');
+            }
+        }, 1500);
+    }
+
+    function setPrimarySource(sourceId) {
+        // Remove primary from all sources
+        dataSources.forEach(source => {
+            source.is_primary = false;
+        });
+
+        // Set new primary
+        const source = dataSources.find(s => s.id === sourceId);
+        if (source) {
+            source.is_primary = true;
+            source.last_used = new Date().toISOString();
+            localStorage.setItem('realDataSources', JSON.stringify(dataSources));
+            showToast(`${source.name} set as primary data source`, 'success');
+            loadDataSources();
+            loadRealDataStatus();
+        }
+    }
+
+    function deleteDataSource(sourceId) {
+        if (!confirm('Are you sure you want to delete this data source?')) {
+            return;
+        }
+
+        dataSources = dataSources.filter(source => source.id !== sourceId);
+        localStorage.setItem('realDataSources', JSON.stringify(dataSources));
+
+        showToast('Data source deleted successfully!', 'success');
+        loadDataSources();
+        loadRealDataStatus();
+    }
+
+    function updateRealDataConfig(enabled) {
+        realDataEnabled = enabled;
+        localStorage.setItem('realDataEnabled', enabled.toString());
+
+        showToast(`Real data ${enabled ? 'enabled' : 'disabled'}`, 'success');
+        loadRealDataStatus();
+    }
+
+    function formatRelativeTime(dateString) {
+        try {
+            const date = new Date(dateString);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+            const diffDays = Math.floor(diffMs / 86400000);
+
+            if (diffMins < 1) return 'just now';
+            if (diffMins < 60) return `${diffMins}m ago`;
+            if (diffHours < 24) return `${diffHours}h ago`;
+            if (diffDays < 7) return `${diffDays}d ago`;
+            return new Date(dateString).toLocaleDateString();
+        } catch (e) {
+            return 'recently';
+        }
+    }
+
+    function showToast(message, type = 'info') {
+        // Create a simple toast notification
+        const toast = document.createElement('div');
+        toast.className = `fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg transition-all duration-300 transform translate-x-0 ${
+            type === 'success' ? 'bg-green-500 text-white' :
+            type === 'error' ? 'bg-red-500 text-white' :
+            type === 'info' ? 'bg-blue-500 text-white' :
+            'bg-gray-500 text-white'
+        }`;
+        toast.textContent = message;
+
+        document.body.appendChild(toast);
+
+        setTimeout(() => {
+            toast.style.transform = 'translateX(100%)';
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.parentNode.removeChild(toast);
+                }
+            }, 300);
+        }, 3000);
+    }
+</script>
+{% endblock %}

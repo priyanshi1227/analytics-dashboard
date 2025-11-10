@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up - AI Analytics Dashboard</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #10b981 0%, #3b82f6 100%);
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .dark .card {
+            background: #2d3748;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #10b981 0%, #3b82f6 100%);
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3);
+        }
+
+        .loading-spinner {
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #10b981;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .role-option {
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .role-option:hover {
+            border-color: #3b82f6;
+            transform: translateY(-2px);
+        }
+
+        .role-option.selected {
+            border-color: #10b981;
+            background-color: #f0fdf4;
+        }
+
+        .dark .role-option {
+            border-color: #4b5563;
+        }
+
+        .dark .role-option:hover {
+            border-color: #3b82f6;
+        }
+
+        .dark .role-option.selected {
+            border-color: #10b981;
+            background-color: #064e3b;
+        }
+
+        .role-badge {
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge-admin { background: #ef4444; color: white; }
+        .badge-manager { background: #f59e0b; color: white; }
+        .badge-analyst { background: #3b82f6; color: white; }
+        .badge-viewer { background: #10b981; color: white; }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors duration-300">
+    <!-- Navigation -->
+    <nav class="bg-white dark:bg-gray-800 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-4">
+                    <h1 class="text-xl font-bold text-gray-800 dark:text-white">
+                        <i class="fas fa-chart-line text-green-600 mr-2"></i>
+                        AI Analytics Dashboard
+                    </h1>
+                </div>
+
+                <div class="flex items-center space-x-4">
+                    <!-- Theme Toggle -->
+                    <button id="themeToggle" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
+                        <i class="fas fa-moon text-gray-600 dark:text-gray-300"></i>
+                    </button>
+
+                    <!-- Login Link -->
+                    <a href="/login" class="text-green-600 hover:text-green-700 dark:text-green-400 font-medium">
+                        Sign In
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="min-h-[calc(100vh-4rem)] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-2xl w-full space-y-8 fade-in">
+            <div>
+                <div class="gradient-bg rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-user-plus text-white text-2xl"></i>
+                </div>
+                <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-white">
+                    Create your account
+                </h2>
+                <p class="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
+                    Or
+                    <a href="/login" class="font-medium text-green-600 hover:text-green-500 dark:text-green-400">
+                        sign in to existing account
+                    </a>
+                </p>
+            </div>
+
+            <form class="mt-8 space-y-6 card p-8" id="signupForm">
+                <div class="space-y-4">
+                    <!-- Basic Information -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="full_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Full Name *
+                            </label>
+                            <input id="full_name" name="full_name" type="text" autocomplete="name" required
+                                   class="w-full px-3 py-3 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white dark:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors"
+                                   placeholder="Enter your full name">
+                        </div>
+
+                        <div>
+                            <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Email Address *
+                            </label>
+                            <input id="email" name="email" type="email" autocomplete="email" required
+                                   class="w-full px-3 py-3 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white dark:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors"
+                                   placeholder="Enter your email address">
+                        </div>
+                    </div>
+
+                    <!-- Role Selection -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                            Select Your Role *
+                        </label>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="roleSelection">
+                            <!-- Admin Role -->
+                            <div class="role-option" data-role="admin">
+                                <div class="flex items-start justify-between mb-2">
+                                    <div class="flex items-center space-x-2">
+                                        <i class="fas fa-crown text-yellow-500"></i>
+                                        <span class="font-semibold text-gray-900 dark:text-white">Administrator</span>
+                                    </div>
+                                    <span class="role-badge badge-admin">Admin</span>
+                                </div>
+                                <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                                    Full system access, user management, and configuration privileges
+                                </p>
+                                <div class="text-xs text-gray-500 dark:text-gray-400 space-y-1">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-check text-green-500 mr-2"></i>
+                                        <span>Full system access</span>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <i class="fas fa-check text-green-500 mr-2"></i>
+                                        <span>User management</span>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <i class="fas fa-check text-green-500 mr-2"></i>
+                                        <span>System configuration</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Manager Role -->
+                            <div class="role-option" data-role="manager">
+                                <div class="flex items-start justify-between mb-2">
+                                    <div class="flex items-center space-x-2">
+                                        <i class="fas fa-user-tie text-orange-500"></i>
+                                        <span class="font-semibold text-gray-900 dark:text-white">Manager</span>
+                                    </div>
+                                    <span class="role-badge badge-manager">Manager</span>
+                                </div>
+                                <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                                    Team management, advanced analytics, and reporting capabilities
+                                </p>
+                                <div class="text-xs text-gray-500 dark:text-gray-400 space-y-1">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-check text-green-500 mr-2"></i>
+                                        <span>Team management</span>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <i class="fas fa-check text-green-500 mr-2"></i>
+                                        <span>Advanced analytics</span>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <i class="fas fa-check text-green-500 mr-2"></i>
+                                        <span>Reporting tools</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Analyst Role -->
+                            <div class="role-option" data-role="analyst">
+                                <div class="flex items-start justify-between mb-2">
+                                    <div class="flex items-center space-x-2">
+                                        <i class="fas fa-chart-bar text-blue-500"></i>
+                                        <span class="font-semibold text-gray-900 dark:text-white">Analyst</span>
+                                    </div>
+                                    <span class="role-badge badge-analyst">Analyst</span>
+                                </div>
+                                <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                                    Data analysis, custom reports, and advanced visualization tools
+                                </p>
+                                <div class="text-xs text-gray-500 dark:text-gray-400 space-y-1">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-check text-green-500 mr-2"></i>
+                                        <span>Data analysis</span>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <i class="fas fa-check text-green-500 mr-2"></i>
+                                        <span>Custom reports</span>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <i class="fas fa-check text-green-500 mr-2"></i>
+                                        <span>Advanced visualizations</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Viewer Role -->
+                            <div class="role-option" data-role="viewer">
+                                <div class="flex items-start justify-between mb-2">
+                                    <div class="flex items-center space-x-2">
+                                        <i class="fas fa-eye text-green-500"></i>
+                                        <span class="font-semibold text-gray-900 dark:text-white">Viewer</span>
+                                    </div>
+                                    <span class="role-badge badge-viewer">Viewer</span>
+                                </div>
+                                <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                                    Read-only access to dashboards and basic reports
+                                </p>
+                                <div class="text-xs text-gray-500 dark:text-gray-400 space-y-1">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-check text-green-500 mr-2"></i>
+                                        <span>View dashboards</span>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <i class="fas fa-check text-green-500 mr-2"></i>
+                                        <span>Basic reports</span>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <i class="fas fa-times text-red-500 mr-2"></i>
+                                        <span>No editing rights</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <input type="hidden" id="selectedRole" name="role" value="viewer" required>
+                    </div>
+
+                    <!-- Password Fields -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Password *
+                            </label>
+                            <input id="password" name="password" type="password" autocomplete="new-password" required
+                                   class="w-full px-3 py-3 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white dark:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors"
+                                   placeholder="Create a password">
+                            <div id="passwordStrength" class="mt-2"></div>
+                        </div>
+
+                        <div>
+                            <label for="confirm_password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Confirm Password *
+                            </label>
+                            <input id="confirm_password" name="confirm_password" type="password" autocomplete="new-password" required
+                                   class="w-full px-3 py-3 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white dark:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors"
+                                   placeholder="Confirm your password">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Terms and Conditions -->
+                <div class="flex items-start space-x-3">
+                    <input id="terms" name="terms" type="checkbox" required
+                           class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 dark:border-gray-600 rounded mt-1">
+                    <label for="terms" class="block text-sm text-gray-900 dark:text-gray-300">
+                        I agree to the
+                        <a href="#" class="text-green-600 hover:text-green-500 dark:text-green-400 font-medium">Terms and Conditions</a>
+                        and
+                        <a href="#" class="text-green-600 hover:text-green-500 dark:text-green-400 font-medium">Privacy Policy</a>.
+                        I understand that my role selection may be reviewed and adjusted by administrators.
+                    </label>
+                </div>
+
+                <!-- Submit Button -->
+                <div>
+                    <button type="submit" id="signupButton"
+                            class="btn-primary group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                        <span class="absolute left-0 inset-y-0 flex items-center pl-3">
+                            <i class="fas fa-user-plus text-green-200"></i>
+                        </span>
+                        Create Account as <span id="roleDisplay" class="ml-1 font-semibold">Viewer</span>
+                    </button>
+                </div>
+
+                <!-- Quick Start Info -->
+                <div class="mt-6">
+                    <div class="relative">
+                        <div class="absolute inset-0 flex items-center">
+                            <div class="w-full border-t border-gray-300 dark:border-gray-600"></div>
+                        </div>
+                        <div class="relative flex justify-center text-sm">
+                            <span class="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">
+                                Role Permissions Overview
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+                        <div class="text-sm text-blue-800 dark:text-blue-200">
+                            <p class="font-medium mb-3 flex items-center">
+                                <i class="fas fa-info-circle mr-2"></i>
+                                Role-based access controls:
+                            </p>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                                <div>
+                                    <span class="font-semibold">Administrator:</span>
+                                    <ul class="list-disc list-inside mt-1 space-y-1">
+                                        <li>Full system configuration</li>
+                                        <li>User management</li>
+                                        <li>All analytics features</li>
+                                    </ul>
+                                </div>
+                                <div>
+                                    <span class="font-semibold">Manager:</span>
+                                    <ul class="list-disc list-inside mt-1 space-y-1">
+                                        <li>Team management</li>
+                                        <li>Advanced reporting</li>
+                                        <li>Data configuration</li>
+                                    </ul>
+                                </div>
+                                <div>
+                                    <span class="font-semibold">Analyst:</span>
+                                    <ul class="list-disc list-inside mt-1 space-y-1">
+                                        <li>Data analysis tools</li>
+                                        <li>Custom reports</li>
+                                        <li>Export capabilities</li>
+                                    </ul>
+                                </div>
+                                <div>
+                                    <span class="font-semibold">Viewer:</span>
+                                    <ul class="list-disc list-inside mt-1 space-y-1">
+                                        <li>Dashboard viewing</li>
+                                        <li>Basic reports</li>
+                                        <li>Read-only access</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+
+            <!-- Loading Spinner -->
+            <div id="loadingSpinner" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+                <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800">
+                    <div class="mt-3 text-center">
+                        <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 dark:bg-green-900">
+                            <i class="fas fa-spinner fa-spin text-green-600 dark:text-green-400"></i>
+                        </div>
+                        <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-white mt-3">Creating your account...</h3>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">Please wait while we set up your <span id="loadingRole">viewer</span> account.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Theme Toggle
+        const themeToggle = document.getElementById('themeToggle');
+        const themeIcon = themeToggle.querySelector('i');
+
+        themeToggle.addEventListener('click', () => {
+            document.documentElement.classList.toggle('dark');
+            if (document.documentElement.classList.contains('dark')) {
+                themeIcon.classList.remove('fa-moon');
+                themeIcon.classList.add('fa-sun');
+                localStorage.setItem('theme', 'dark');
+            } else {
+                themeIcon.classList.remove('fa-sun');
+                themeIcon.classList.add('fa-moon');
+                localStorage.setItem('theme', 'light');
+            }
+        });
+
+        // Load saved theme
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'dark') {
+            document.documentElement.classList.add('dark');
+            themeIcon.classList.remove('fa-moon');
+            themeIcon.classList.add('fa-sun');
+        }
+
+        // Toast notifications
+        const toast = {
+            show(message, type = 'info') {
+                const toast = document.createElement('div');
+                toast.className = `fixed top-20 right-4 p-4 rounded-lg shadow-lg transform transition-transform duration-300 translate-x-full z-50 ${this.getTypeClass(type)}`;
+                toast.innerHTML = `
+                    <div class="flex items-center space-x-2">
+                        <i class="fas ${this.getTypeIcon(type)}"></i>
+                        <span>${message}</span>
+                    </div>
+                `;
+
+                document.body.appendChild(toast);
+
+                setTimeout(() => {
+                    toast.classList.remove('translate-x-full');
+                }, 100);
+
+                setTimeout(() => {
+                    toast.classList.add('translate-x-full');
+                    setTimeout(() => {
+                        if (document.body.contains(toast)) {
+                            document.body.removeChild(toast);
+                        }
+                    }, 300);
+                }, 3000);
+            },
+
+            getTypeClass(type) {
+                const classes = {
+                    success: 'bg-green-500 text-white',
+                    error: 'bg-red-500 text-white',
+                    warning: 'bg-yellow-500 text-white',
+                    info: 'bg-blue-500 text-white'
+                };
+                return classes[type] || classes.info;
+            },
+
+            getTypeIcon(type) {
+                const icons = {
+                    success: 'fa-check-circle',
+                    error: 'fa-exclamation-circle',
+                    warning: 'fa-exclamation-triangle',
+                    info: 'fa-info-circle'
+                };
+                return icons[type] || icons.info;
+            }
+        };
+
+        // Role Selection
+        let selectedRole = 'viewer';
+
+        document.querySelectorAll('.role-option').forEach(option => {
+            option.addEventListener('click', function() {
+                // Remove selected class from all options
+                document.querySelectorAll('.role-option').forEach(opt => {
+                    opt.classList.remove('selected');
+                });
+
+                // Add selected class to clicked option
+                this.classList.add('selected');
+
+                // Update selected role
+                selectedRole = this.getAttribute('data-role');
+                document.getElementById('selectedRole').value = selectedRole;
+                document.getElementById('roleDisplay').textContent = this.querySelector('.font-semibold').textContent;
+
+                toast.show(`Role selected: ${this.querySelector('.font-semibold').textContent}`, 'info');
+            });
+        });
+
+        // Set default selected role
+        document.addEventListener('DOMContentLoaded', function() {
+            const defaultOption = document.querySelector('.role-option[data-role="viewer"]');
+            defaultOption.classList.add('selected');
+        });
+
+        // Signup form handler
+        document.getElementById('signupForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const fullName = document.getElementById('full_name').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirm_password').value;
+            const role = document.getElementById('selectedRole').value;
+            const signupButton = document.getElementById('signupButton');
+            const loadingSpinner = document.getElementById('loadingSpinner');
+
+            // Validation
+            if (password !== confirmPassword) {
+                toast.show('Passwords do not match!', 'error');
+                return;
+            }
+
+            if (password.length < 6) {
+                toast.show('Password must be at least 6 characters long!', 'error');
+                return;
+            }
+
+            if (!role) {
+                toast.show('Please select a role!', 'error');
+                return;
+            }
+
+            // Show loading state
+            signupButton.disabled = true;
+            signupButton.innerHTML = `
+                <i class="fas fa-spinner fa-spin mr-2"></i>
+                Creating ${role.charAt(0).toUpperCase() + role.slice(1)} Account...
+            `;
+            document.getElementById('loadingRole').textContent = role;
+            loadingSpinner.classList.remove('hidden');
+
+            try {
+                const response = await fetch('/api/signup', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        full_name: fullName,
+                        email: email,
+                        password: password,
+                        role: role
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    toast.show(`${role.charAt(0).toUpperCase() + role.slice(1)} account created successfully! Please sign in.`, 'success');
+
+                    // Redirect to login page after a short delay
+                    setTimeout(() => {
+                        window.location.href = '/login';
+                    }, 2000);
+                } else {
+                    throw new Error(data.detail || 'Registration failed');
+                }
+            } catch (error) {
+                console.error('Signup error:', error);
+                let errorMessage = 'Registration failed. Please try again.';
+
+                if (error.message.includes('already registered')) {
+                    errorMessage = 'An account with this email already exists.';
+                } else if (error.message.includes('NetworkError')) {
+                    errorMessage = 'Network error. Please check your connection.';
+                } else if (error.message.includes('role')) {
+                    errorMessage = 'Invalid role selected. Please choose a valid role.';
+                } else {
+                    errorMessage = error.message;
+                }
+
+                toast.show(errorMessage, 'error');
+            } finally {
+                // Reset loading state
+                signupButton.disabled = false;
+                signupButton.innerHTML = `
+                    <span class="absolute left-0 inset-y-0 flex items-center pl-3">
+                        <i class="fas fa-user-plus text-green-200"></i>
+                    </span>
+                    Create Account as <span id="roleDisplay" class="ml-1 font-semibold">${selectedRole.charAt(0).toUpperCase() + selectedRole.slice(1)}</span>
+                `;
+                loadingSpinner.classList.add('hidden');
+            }
+        });
+
+        // Password confirmation validation
+        document.getElementById('confirm_password').addEventListener('input', function() {
+            const password = document.getElementById('password').value;
+            const confirmPassword = this.value;
+
+            if (confirmPassword && password !== confirmPassword) {
+                this.classList.add('border-red-300', 'dark:border-red-600');
+                this.classList.remove('border-gray-300', 'dark:border-gray-600');
+            } else {
+                this.classList.remove('border-red-300', 'dark:border-red-600');
+                this.classList.add('border-gray-300', 'dark:border-gray-600');
+            }
+        });
+
+        // Check if user is already logged in
+        document.addEventListener('DOMContentLoaded', function() {
+            const token = localStorage.getItem('token');
+            if (token) {
+                // Verify token is still valid
+                fetch('/api/user/profile', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                })
+                .then(response => {
+                    if (response.ok) {
+                        window.location.href = '/dashboard';
+                    }
+                })
+                .catch(() => {
+                    // Token is invalid, clear it
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('user');
+                });
+            }
+        });
+
+        // Add password strength indicator
+        document.getElementById('password').addEventListener('input', function() {
+            const password = this.value;
+            const strengthIndicator = document.getElementById('passwordStrength') || createPasswordStrengthIndicator();
+
+            let strength = 0;
+
+            if (password.length >= 6) strength++;
+            if (password.match(/[a-z]/) && password.match(/[A-Z]/)) strength++;
+            if (password.match(/\d/)) strength++;
+            if (password.match(/[^a-zA-Z\d]/)) strength++;
+
+            const strengthClasses = [
+                'bg-red-500', 'bg-orange-500', 'bg-yellow-500', 'bg-green-500', 'bg-green-600'
+            ];
+            const strengthText = [
+                'Very Weak', 'Weak', 'Fair', 'Good', 'Strong'
+            ];
+            const strengthColors = [
+                'text-red-600', 'text-orange-600', 'text-yellow-600', 'text-green-600', 'text-green-700'
+            ];
+
+            strengthIndicator.innerHTML = `
+                <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                    <div class="h-2 rounded-full ${strengthClasses[strength]} transition-all duration-300"
+                         style="width: ${(strength / 4) * 100}%"></div>
+                </div>
+                <div class="text-xs mt-1 ${strengthColors[strength]} dark:text-gray-400">
+                    Password strength: <span class="font-medium">${strengthText[strength]}</span>
+                </div>
+            `;
+        });
+
+        function createPasswordStrengthIndicator() {
+            const indicator = document.createElement('div');
+            indicator.id = 'passwordStrength';
+            indicator.className = 'mt-2';
+
+            const passwordInput = document.getElementById('password');
+            passwordInput.parentNode.appendChild(indicator);
+
+            return indicator;
+        }
+
+        // Role tooltip information
+        const rolePermissions = {
+            admin: {
+                description: "Full system administrator with complete access to all features and user management.",
+                features: [
+                    "User account management",
+                    "System configuration",
+                    "All analytics features",
+                    "Data source management",
+                    "Role assignments"
+                ]
+            },
+            manager: {
+                description: "Team manager with advanced analytics and reporting capabilities.",
+                features: [
+                    "Team management",
+                    "Advanced reporting",
+                    "Data configuration",
+                    "Export capabilities",
+                    "Custom dashboards"
+                ]
+            },
+            analyst: {
+                description: "Data analyst with tools for deep analysis and custom reporting.",
+                features: [
+                    "Data analysis tools",
+                    "Custom reports",
+                    "Export capabilities",
+                    "Advanced visualizations",
+                    "Statistical analysis"
+                ]
+            },
+            viewer: {
+                description: "Read-only access to view dashboards and basic reports.",
+                features: [
+                    "View dashboards",
+                    "Basic reports",
+                    "Read-only access",
+                    "Export basic data",
+                    "No editing rights"
+                ]
+            }
+        };
+    </script>
+</body>
+</html>

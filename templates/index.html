@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Analytics Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --primary-dark: #1d4ed8;
+            --secondary: #1e293b;
+            --accent: #60a5fa;
+            --dark: #0f172a;
+            --light: #f8fafc;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: #0f172a;
+            overflow-x: hidden;
+        }
+
+        .glass {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+        }
+
+        .gradient-bg {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        }
+
+        .hero-gradient {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #1e40af 100%);
+        }
+
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+            border-color: rgba(59, 130, 246, 0.5);
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #3b82f6, #60a5fa, #93c5fd);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .glow {
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+        }
+
+        .btn-hover {
+            transition: all 0.3s ease;
+        }
+
+        .btn-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(59, 130, 246, 0.4);
+        }
+
+        .feature-icon {
+            transition: all 0.3s ease;
+        }
+
+        .card-hover:hover .feature-icon {
+            transform: scale(1.05);
+        }
+
+        .interactive-element {
+            transition: all 0.3s ease;
+        }
+
+        .interactive-element:hover {
+            transform: translateY(-2px);
+        }
+
+        .chart-preview {
+            position: relative;
+            height: 120px;
+            overflow: hidden;
+            margin-top: 20px;
+            border-radius: 8px;
+            background: rgba(30, 41, 59, 0.5);
+        }
+
+        .chart-bar {
+            position: absolute;
+            bottom: 0;
+            width: 12px;
+            background: linear-gradient(to top, var(--primary), var(--accent));
+            border-radius: 4px 4px 0 0;
+        }
+
+        .data-point {
+            position: relative;
+            display: inline-block;
+            margin: 0 2px;
+            width: 8px;
+            height: 8px;
+            background-color: var(--primary);
+            border-radius: 50%;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #1e293b;
+            transition: .4s;
+            border-radius: 34px;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 3px;
+            background-color: #64748b;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .toggle-slider {
+            background-color: var(--primary);
+        }
+
+        input:checked + .toggle-slider:before {
+            transform: translateX(26px);
+            background-color: white;
+        }
+
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+
+        .tooltip .tooltip-text {
+            visibility: hidden;
+            width: 200px;
+            background-color: rgba(30, 41, 59, 0.9);
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 10px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.3s;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .tooltip:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .filter-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            background: rgba(30, 41, 59, 0.7);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            color: #cbd5e1;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .filter-btn.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .filter-btn:hover {
+            background: rgba(59, 130, 246, 0.3);
+        }
+
+        .timeline {
+            position: relative;
+            height: 4px;
+            background: rgba(30, 41, 59, 0.7);
+            border-radius: 2px;
+            margin: 30px 0;
+        }
+
+        .timeline-progress {
+            position: absolute;
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+            border-radius: 2px;
+            width: 100%;
+        }
+
+        .timeline-marker {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 16px;
+            height: 16px;
+            background: var(--primary);
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .feature-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            z-index: 10;
+        }
+
+        .gradient-border {
+            position: relative;
+            background: linear-gradient(135deg, #0f172a, #1e293b);
+            padding: 1px;
+            border-radius: 16px;
+        }
+
+        .gradient-border::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border-radius: 16px;
+            padding: 2px;
+            background: linear-gradient(135deg, #3b82f6, #60a5fa, #93c5fd);
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        .gradient-border:hover::before {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="text-slate-200">
+    <!-- Navigation -->
+    <nav class="sticky top-0 z-50 glass">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <div class="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center mr-3 shadow-lg glow">
+                        <i class="fas fa-chart-network text-white text-lg"></i>
+                    </div>
+                    <span class="text-white font-bold text-xl">AI Analytics</span>
+                </div>
+                <div class="hidden md:flex items-center space-x-8">
+                    <a href="#features" class="nav-item text-slate-300 hover:text-white transition-colors duration-300 font-medium interactive-element">Features</a>
+                    <a href="#solutions" class="nav-item text-slate-300 hover:text-white transition-colors duration-300 font-medium interactive-element">Solutions</a>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="/login" class="nav-item text-slate-300 hover:text-white transition-colors duration-300 font-medium interactive-element">Sign In</a>
+                    <a href="/signup" class="btn-hover bg-blue-500 hover:bg-blue-600 text-white px-5 py-2.5 rounded-xl transition-all duration-300 font-medium shadow-md hover:shadow-lg glow interactive-element">
+                        Get Started
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <div class="hero-gradient pt-20 pb-32 relative overflow-hidden">
+        <div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wMyI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMyIvPjwvZz48L2c+PC9zdmc+')] opacity-10"></div>
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div class="text-center">
+                <div class="inline-flex items-center bg-blue-500/20 backdrop-blur-sm rounded-full px-4 py-2 mb-8 border border-blue-500/30">
+                    <span class="w-2 h-2 bg-blue-400 rounded-full mr-2"></span>
+                    <span class="text-blue-200 text-sm font-medium">Now with AI-powered insights</span>
+                </div>
+                <h1 class="text-5xl md:text-7xl font-bold text-white mb-6 leading-tight">
+                    Transform Data Into
+                    <span class="block gradient-text">Actionable Insights</span>
+                </h1>
+                <p class="text-xl text-slate-300 mb-10 max-w-3xl mx-auto leading-relaxed">
+                    Unlock the power of your data with our advanced AI analytics platform. Get real-time metrics, predictive analytics, and intelligent recommendations in one intuitive dashboard.
+                </p>
+                <div class="flex flex-col sm:flex-row gap-4 justify-center mb-16">
+                    <a href="/signup" class="btn-hover bg-blue-500 hover:bg-blue-600 text-white px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-300 shadow-lg hover:shadow-xl flex items-center justify-center glow interactive-element">
+                        <i class="fas fa-rocket mr-3"></i>
+                        Start Free Trial
+                    </a>
+                </div>
+                <div class="glass rounded-2xl p-6 max-w-4xl mx-auto border border-blue-500/20">
+                    <div class="flex flex-wrap justify-center gap-8 text-slate-300">
+                        <div class="flex items-center">
+                            <i class="fas fa-check-circle text-blue-400 mr-2"></i>
+                            <span>No credit card required</span>
+                        </div>
+                        <div class="flex items-center">
+                            <i class="fas fa-check-circle text-blue-400 mr-2"></i>
+                            <span>14-day free trial</span>
+                        </div>
+                        <div class="flex items-center">
+                            <i class="fas fa-check-circle text-blue-400 mr-2"></i>
+                            <span>Setup in minutes</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Features Section -->
+    <div id="features" class="py-20 bg-slate-900 relative overflow-hidden">
+        <!-- Background elements -->
+        <div class="absolute top-0 left-0 w-full h-full opacity-10">
+            <div class="absolute top-1/4 left-1/4 w-64 h-64 bg-blue-500 rounded-full blur-3xl"></div>
+            <div class="absolute bottom-1/4 right-1/4 w-64 h-64 bg-indigo-500 rounded-full blur-3xl"></div>
+        </div>
+
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl md:text-5xl font-bold text-white mb-4">Powerful Features</h2>
+                <p class="text-xl text-slate-400 max-w-2xl mx-auto">
+                    Everything you need to understand your data and make informed decisions
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Feature 1 -->
+                <div class="card-hover glass p-8 rounded-2xl border border-blue-500/30 relative interactive-element">
+                    <div class="feature-badge">POPULAR</div>
+                    <div class="w-16 h-16 bg-blue-500/20 rounded-xl flex items-center justify-center mb-6">
+                        <i class="fas fa-brain text-blue-400 text-2xl feature-icon"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-white mb-3">AI Recommendations</h3>
+                    <p class="text-slate-400 mb-4">
+                        Get data-driven insights and actionable recommendations powered by machine learning algorithms.
+                    </p>
+                    <ul class="text-slate-400 space-y-2">
+                        <li class="flex items-center">
+                            <i class="fas fa-check text-blue-400 mr-2"></i>
+                            Predictive analytics
+                        </li>
+                        <li class="flex items-center">
+                            <i class="fas fa-check text-blue-400 mr-2"></i>
+                            Automated insights
+                        </li>
+                        <li class="flex items-center">
+                            <i class="fas fa-check text-blue-400 mr-2"></i>
+                            Smart alerts
+                        </li>
+                    </ul>
+
+                    <!-- Interactive chart preview -->
+                    <div class="chart-preview mt-6">
+                        <div class="chart-bar" style="left: 10%; height: 40%;"></div>
+                        <div class="chart-bar" style="left: 25%; height: 70%;"></div>
+                        <div class="chart-bar" style="left: 40%; height: 30%;"></div>
+                        <div class="chart-bar" style="left: 55%; height: 90%;"></div>
+                        <div class="chart-bar" style="left: 70%; height: 60%;"></div>
+                        <div class="chart-bar" style="left: 85%; height: 80%;"></div>
+                    </div>
+                </div>
+
+                <!-- Feature 2 -->
+                <div class="card-hover glass p-8 rounded-2xl border border-blue-500/20 relative interactive-element">
+                    <div class="w-16 h-16 bg-blue-500/20 rounded-xl flex items-center justify-center mb-6">
+                        <i class="fas fa-users text-blue-400 text-2xl feature-icon"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-white mb-3">Cohort Analysis</h3>
+                    <p class="text-slate-400 mb-4">
+                        Track user behavior over time with advanced cohort analysis and retention metrics.
+                    </p>
+                    <ul class="text-slate-400 space-y-2">
+                        <li class="flex items-center">
+                            <i class="fas fa-check text-blue-400 mr-2"></i>
+                            Retention tracking
+                        </li>
+                        <li class="flex items-center">
+                            <i class="fas fa-check text-blue-400 mr-2"></i>
+                            Behavior analysis
+                        </li>
+                        <li class="flex items-center">
+                            <i class="fas fa-check text-blue-400 mr-2"></i>
+                            Lifecycle metrics
+                        </li>
+                    </ul>
+
+                    <!-- Interactive data visualization -->
+                    <div class="mt-6 flex justify-center">
+                        <div class="data-point" data-value="75"></div>
+                        <div class="data-point" data-value="60"></div>
+                        <div class="data-point" data-value="45"></div>
+                        <div class="data-point" data-value="30"></div>
+                        <div class="data-point" data-value="20"></div>
+                    </div>
+                </div>
+
+                <!-- Feature 3 -->
+                <div class="card-hover glass p-8 rounded-2xl border border-blue-500/30 relative interactive-element">
+                    <div class="feature-badge">NEW</div>
+                    <div class="w-16 h-16 bg-blue-500/20 rounded-xl flex items-center justify-center mb-6">
+                        <i class="fas fa-vial text-blue-400 text-2xl feature-icon"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-white mb-3">A/B Testing</h3>
+                    <p class="text-slate-400 mb-4">
+                        Run experiments and optimize user experiences with built-in A/B testing platform.
+                    </p>
+                    <ul class="text-slate-400 space-y-2">
+                        <li class="flex items-center">
+                            <i class="fas fa-check text-blue-400 mr-2"></i>
+                            Statistical significance
+                        </li>
+                        <li class="flex items-center">
+                            <i class="fas fa-check text-blue-400 mr-2"></i>
+                            Multi-variant testing
+                        </li>
+                        <li class="flex items-center">
+                            <i class="fas fa-check text-blue-400 mr-2"></i>
+                            Real-time results
+                        </li>
+                    </ul>
+
+                    <!-- Interactive toggle switch -->
+                    <div class="mt-6 flex items-center justify-between">
+                        <span class="text-slate-400">Test Mode</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="test-toggle">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Feature 4 -->
+                <div class="card-hover glass p-8 rounded-2xl border border-blue-500/20 relative interactive-element">
+                    <div class="w-16 h-16 bg-blue-500/20 rounded-xl flex items-center justify-center mb-6">
+                        <i class="fas fa-chart-line text-blue-400 text-2xl feature-icon"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-white mb-3">Real-time Analytics</h3>
+                    <p class="text-slate-400 mb-4">
+                        Monitor your data in real-time with live dashboards and instant updates.
+                    </p>
+                    <ul class="text-slate-400 space-y-2">
+                        <li class="flex items-center">
+                            <i class="fas fa-check text-blue-400 mr-2"></i>
+                            Live data streams
+                        </li>
+                        <li class="flex items-center">
+                            <i class="fas fa-check text-blue-400 mr-2"></i>
+                            Instant notifications
+                        </li>
+                        <li class="flex items-center">
+                            <i class="fas fa-check text-blue-400 mr-2"></i>
+                            Dynamic charts
+                        </li>
+                    </ul>
+
+                    <!-- Interactive tooltip -->
+                    <div class="mt-6 tooltip">
+                        <button class="filter-btn active">Live Data</button>
+                        <span class="tooltip-text">View real-time data streams with millisecond latency for immediate insights</span>
+                    </div>
+                </div>
+
+                <!-- Feature 5 -->
+                <div class="card-hover glass p-8 rounded-2xl border border-blue-500/30 relative interactive-element">
+                    <div class="w-16 h-16 bg-blue-500/20 rounded-xl flex items-center justify-center mb-6">
+                        <i class="fas fa-shield-alt text-blue-400 text-2xl feature-icon"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-white mb-3">Data Security</h3>
+                    <p class="text-slate-400 mb-4">
+                        Enterprise-grade security with encryption, access controls, and compliance features.
+                    </p>
+                    <ul class="text-slate-400 space-y-2">
+                        <li class="flex items-center">
+                            <i class="fas fa-check text-blue-400 mr-2"></i>
+                            End-to-end encryption
+                        </li>
+                        <li class="flex items-center">
+                            <i class="fas fa-check text-blue-400 mr-2"></i>
+                            Role-based access
+                        </li>
+                        <li class="flex items-center">
+                            <i class="fas fa-check text-blue-400 mr-2"></i>
+                            GDPR compliant
+                        </li>
+                    </ul>
+
+                    <!-- Interactive timeline -->
+                    <div class="timeline mt-6">
+                        <div class="timeline-progress"></div>
+                        <div class="timeline-marker" style="left: 0%;"></div>
+                        <div class="timeline-marker" style="left: 33%;"></div>
+                        <div class="timeline-marker" style="left: 66%;"></div>
+                        <div class="timeline-marker" style="left: 100%;"></div>
+                    </div>
+                </div>
+
+                <!-- Feature 6 -->
+                <div class="card-hover glass p-8 rounded-2xl border border-blue-500/20 relative interactive-element">
+                    <div class="w-16 h-16 bg-blue-500/20 rounded-xl flex items-center justify-center mb-6">
+                        <i class="fas fa-plug text-blue-400 text-2xl feature-icon"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-white mb-3">API Integration</h3>
+                    <p class="text-slate-400 mb-4">
+                        Connect with your favorite tools and services through our comprehensive API.
+                    </p>
+                    <ul class="text-slate-400 space-y-2">
+                        <li class="flex items-center">
+                            <i class="fas fa-check text-blue-400 mr-2"></i>
+                            RESTful API
+                        </li>
+                        <li class="flex items-center">
+                            <i class="fas fa-check text-blue-400 mr-2"></i>
+                            Webhooks
+                        </li>
+                        <li class="flex items-center">
+                            <i class="fas fa-check text-blue-400 mr-2"></i>
+                            Pre-built connectors
+                        </li>
+                    </ul>
+
+                    <!-- Interactive filter controls -->
+                    <div class="filter-controls mt-6">
+                        <button class="filter-btn active">All</button>
+                        <button class="filter-btn">Popular</button>
+                        <button class="filter-btn">New</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Solutions Section -->
+    <div id="solutions" class="py-20 bg-slate-800 relative overflow-hidden">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl md:text-5xl font-bold text-white mb-4">Industry Solutions</h2>
+                <p class="text-xl text-slate-400 max-w-2xl mx-auto">
+                    Tailored analytics solutions for your specific industry needs
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                <div class="text-center p-6 interactive-element">
+                    <div class="w-20 h-20 bg-blue-500/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-shopping-cart text-blue-400 text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-white mb-3">E-commerce</h3>
+                    <p class="text-slate-400">Customer behavior analysis and sales optimization</p>
+                </div>
+                <div class="text-center p-6 interactive-element">
+                    <div class="w-20 h-20 bg-blue-500/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-heartbeat text-blue-400 text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-white mb-3">Healthcare</h3>
+                    <p class="text-slate-400">Patient data insights and operational efficiency</p>
+                </div>
+                <div class="text-center p-6 interactive-element">
+                    <div class="w-20 h-20 bg-blue-500/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-graduation-cap text-blue-400 text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-white mb-3">Education</h3>
+                    <p class="text-slate-400">Student performance tracking and engagement analytics</p>
+                </div>
+                <div class="text-center p-6 interactive-element">
+                    <div class="w-20 h-20 bg-blue-500/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-industry text-blue-400 text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-white mb-3">Manufacturing</h3>
+                    <p class="text-slate-400">Production optimization and quality control</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Section -->
+    <div class="py-20 bg-slate-900 text-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+                <div class="p-8 stat-item gradient-border interactive-element">
+                    <div class="text-5xl font-bold mb-2 gradient-text" id="stat1">98%</div>
+                    <p class="text-slate-300">Customer Satisfaction</p>
+                </div>
+                <div class="p-8 stat-item gradient-border interactive-element">
+                    <div class="text-5xl font-bold mb-2 gradient-text" id="stat2">5.2x</div>
+                    <p class="text-slate-300">Faster Decision Making</p>
+                </div>
+                <div class="p-8 stat-item gradient-border interactive-element">
+                    <div class="text-5xl font-bold mb-2 gradient-text" id="stat3">24/7</div>
+                    <p class="text-slate-300">Real-time Analytics</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CTA Section -->
+    <div class="py-20 bg-slate-800">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 class="text-4xl font-bold text-white mb-6">Ready to Transform Your Data?</h2>
+            <p class="text-xl text-slate-400 mb-10 max-w-2xl mx-auto">
+                Join thousands of teams using AI Analytics Dashboard to make data-driven decisions and drive growth.
+            </p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <a href="/signup" class="btn-hover bg-blue-500 hover:bg-blue-600 text-white px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-300 shadow-lg hover:shadow-xl flex items-center justify-center glow interactive-element">
+                    <i class="fas fa-user-plus mr-3"></i>
+                    Create Free Account
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Simple interactive elements
+        const filterButtons = document.querySelectorAll('.filter-btn');
+
+        filterButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                // Remove active class from all buttons
+                filterButtons.forEach(btn => btn.classList.remove('active'));
+
+                // Add active class to clicked button
+                button.classList.add('active');
+            });
+        });
+
+        // Toggle switch functionality
+        const testToggle = document.getElementById('test-toggle');
+
+        testToggle.addEventListener('change', () => {
+            if (testToggle.checked) {
+                console.log('Test mode activated');
+            } else {
+                console.log('Test mode deactivated');
+            }
+        });
+    </script>
+</body>
+</html>

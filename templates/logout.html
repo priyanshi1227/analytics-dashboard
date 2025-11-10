@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logout - AI Analytics Dashboard</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --primary-dark: #1d4ed8;
+            --secondary: #64748b;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --dark: #1e293b;
+            --light: #f8fafc;
+        }
+
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        .loading-spinner {
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .dark {
+            --bg-primary: #1a202c;
+            --bg-secondary: #2d3748;
+            --text-primary: #f7fafc;
+            --text-secondary: #e2e8f0;
+        }
+
+        .dark .card {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 transition-colors duration-300 min-h-screen flex items-center justify-center">
+    <div class="max-w-md w-full mx-4">
+        <!-- Logout Card -->
+        <div class="card p-8 fade-in">
+            <!-- Header -->
+            <div class="text-center mb-8">
+                <div class="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white mx-auto mb-4">
+                    <i class="fas fa-sign-out-alt text-xl"></i>
+                </div>
+                <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Logging Out</h1>
+                <p class="text-gray-600 dark:text-gray-400 mt-2">You are being securely logged out of your account.</p>
+            </div>
+
+            <!-- Loading Animation -->
+            <div class="flex justify-center mb-8">
+                <div class="loading-spinner"></div>
+            </div>
+
+            <!-- Status Messages -->
+            <div id="statusMessages" class="space-y-3 mb-6">
+                <div class="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                    <i class="fas fa-check-circle text-green-500 mr-2"></i>
+                    <span>Clearing session data...</span>
+                </div>
+                <div class="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                    <i class="fas fa-check-circle text-green-500 mr-2"></i>
+                    <span>Revoking authentication tokens...</span>
+                </div>
+                <div class="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                    <i class="fas fa-sync-alt text-blue-500 mr-2 animate-spin"></i>
+                    <span>Redirecting to login page...</span>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex flex-col space-y-3">
+                <button id="cancelLogout" class="w-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-medium py-3 px-4 rounded-lg transition-colors duration-200">
+                    Cancel Logout
+                </button>
+                <button id="logoutNow" class="w-full bg-red-500 hover:bg-red-600 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center">
+                    <i class="fas fa-sign-out-alt mr-2"></i>
+                    Logout Immediately
+                </button>
+            </div>
+
+            <!-- Security Notice -->
+            <div class="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                <div class="flex items-start">
+                    <i class="fas fa-shield-alt text-blue-500 mt-0.5 mr-3"></i>
+                    <div>
+                        <p class="text-sm text-blue-800 dark:text-blue-300 font-medium">Security Notice</p>
+                        <p class="text-xs text-blue-600 dark:text-blue-400 mt-1">For security reasons, please close all browser windows after logging out if you're on a shared device.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="text-center mt-6">
+            <p class="text-sm text-gray-500 dark:text-gray-400">
+                &copy; 2023 AI Analytics Dashboard. All rights reserved.
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // Initialize theme
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'dark') {
+                document.documentElement.classList.add('dark');
+            }
+
+            // Auto logout after 5 seconds
+            const logoutTimer = setTimeout(() => {
+                performLogout();
+            }, 5000);
+
+            // Cancel logout button
+            document.getElementById('cancelLogout').addEventListener('click', function() {
+                clearTimeout(logoutTimer);
+                window.location.href = '/dashboard';
+            });
+
+            // Logout immediately button
+            document.getElementById('logoutNow').addEventListener('click', function() {
+                clearTimeout(logoutTimer);
+                performLogout();
+            });
+
+            // Simulate status updates
+            simulateStatusUpdates();
+        });
+
+        function performLogout() {
+            // Clear user data
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            sessionStorage.clear();
+
+            // Update status message
+            document.querySelectorAll('#statusMessages div')[2].innerHTML =
+                '<i class="fas fa-check-circle text-green-500 mr-2"></i><span>Redirecting to login page...</span>';
+
+            // Redirect to login page
+            setTimeout(() => {
+                window.location.href = '/login';
+            }, 1000);
+        }
+
+        function simulateStatusUpdates() {
+            setTimeout(() => {
+                document.querySelectorAll('#statusMessages div')[0].innerHTML =
+                    '<i class="fas fa-check-circle text-green-500 mr-2"></i><span>Session data cleared</span>';
+            }, 800);
+
+            setTimeout(() => {
+                document.querySelectorAll('#statusMessages div')[1].innerHTML =
+                    '<i class="fas fa-check-circle text-green-500 mr-2"></i><span>Authentication tokens revoked</span>';
+            }, 1600);
+        }
+    </script>
+</body>
+</html>

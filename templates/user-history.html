@@ -1,0 +1,384 @@
+{% extends "base.html" %}
+
+{% block title %}Activity History - AI Analytics{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">Activity History</h1>
+        <p class="text-gray-600 dark:text-gray-400">Track your actions and system usage</p>
+    </div>
+
+    <!-- Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div class="card p-6 text-center">
+            <div class="text-2xl font-bold text-blue-600" id="totalActions">-</div>
+            <div class="text-sm text-gray-600 dark:text-gray-400">Total Actions</div>
+        </div>
+        <div class="card p-6 text-center">
+            <div class="text-2xl font-bold text-green-600" id="recentActions">-</div>
+            <div class="text-sm text-gray-600 dark:text-gray-400">Last 7 Days</div>
+        </div>
+        <div class="card p-6 text-center">
+            <div class="text-2xl font-bold text-purple-600" id="mostActiveDay">-</div>
+            <div class="text-sm text-gray-600 dark:text-gray-400">Most Active Day</div>
+        </div>
+        <div class="card p-6 text-center">
+            <div class="text-2xl font-bold text-orange-600" id="lastAction">-</div>
+            <div class="text-sm text-gray-600 dark:text-gray-400">Last Action</div>
+        </div>
+    </div>
+
+    <!-- Activity History -->
+    <div class="card p-6">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Recent Activity</h3>
+            <div class="flex items-center space-x-4">
+                <select id="actionTypeFilter" onchange="loadHistory()"
+                       class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                    <option value="">All Actions</option>
+                    <option value="login">Logins</option>
+                    <option value="view_dashboard">Dashboard Views</option>
+                    <option value="create_report">Report Creation</option>
+                    <option value="export_data">Data Exports</option>
+                    <option value="cohort_analysis">Cohort Analysis</option>
+                    <option value="funnel_analysis">Funnel Analysis</option>
+                    <option value="ai_recommendations">AI Recommendations</option>
+                </select>
+
+                <button onclick="loadHistory()" class="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors">
+                    <i class="fas fa-refresh mr-2"></i>Refresh
+                </button>
+            </div>
+        </div>
+
+        <div id="historyList" class="space-y-4">
+            <!-- History items will be loaded here -->
+        </div>
+
+        <div id="historyLoading" class="text-center py-8">
+            <div class="loading-spinner mx-auto mb-4"></div>
+            <p class="text-gray-600 dark:text-gray-400">Loading activity history...</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let activityHistory = [];
+
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('Activity history page loaded');
+        loadHistory();
+        loadActivitySummary();
+    });
+
+    function loadHistory() {
+        const actionType = document.getElementById('actionTypeFilter').value;
+        const loadingElement = document.getElementById('historyLoading');
+        const listElement = document.getElementById('historyList');
+
+        loadingElement.classList.remove('hidden');
+        listElement.innerHTML = '';
+
+        // Simulate API delay
+        setTimeout(() => {
+            try {
+                // Load from localStorage or generate sample data
+                const savedHistory = JSON.parse(localStorage.getItem('activityHistory') || '[]');
+                if (savedHistory.length > 0) {
+                    activityHistory = savedHistory;
+                } else {
+                    activityHistory = generateSampleHistory();
+                    localStorage.setItem('activityHistory', JSON.stringify(activityHistory));
+                }
+
+                // Filter by action type if specified
+                let filteredHistory = activityHistory;
+                if (actionType) {
+                    filteredHistory = activityHistory.filter(item => item.action_type === actionType);
+                }
+
+                // Sort by timestamp (newest first)
+                filteredHistory.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+                renderHistory(filteredHistory);
+                updateActivityStats(filteredHistory);
+
+            } catch (error) {
+                console.error('Error loading history:', error);
+                window.toast.show('Failed to load activity history', 'error');
+                renderHistory([]);
+                updateActivityStats([]);
+            } finally {
+                loadingElement.classList.add('hidden');
+            }
+        }, 800);
+    }
+
+    function generateSampleHistory() {
+        const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+        const now = new Date();
+        const history = [];
+
+        // Generate activities for the last 30 days
+        for (let i = 0; i < 50; i++) {
+            const daysAgo = Math.floor(Math.random() * 30);
+            const hoursAgo = Math.floor(Math.random() * 24);
+            const minutesAgo = Math.floor(Math.random() * 60);
+
+            const timestamp = new Date(now);
+            timestamp.setDate(timestamp.getDate() - daysAgo);
+            timestamp.setHours(timestamp.getHours() - hoursAgo);
+            timestamp.setMinutes(timestamp.getMinutes() - minutesAgo);
+
+            const actionTypes = [
+                'login', 'view_dashboard', 'create_report', 'export_data',
+                'cohort_analysis', 'funnel_analysis', 'ai_recommendations',
+                'update_settings', 'view_analytics'
+            ];
+
+            const actionType = actionTypes[Math.floor(Math.random() * actionTypes.length)];
+
+            const activity = {
+                id: i + 1,
+                action_type: actionType,
+                description: getActionDescription(actionType),
+                timestamp: timestamp.toISOString(),
+                metadata: generateMetadata(actionType)
+            };
+
+            history.push(activity);
+        }
+
+        // Add current session activities
+        const currentActivities = [
+            {
+                id: 51,
+                action_type: 'login',
+                description: 'User logged into the system',
+                timestamp: new Date().toISOString(),
+                metadata: { device: 'Chrome Browser', location: 'New York, US' }
+            },
+            {
+                id: 52,
+                action_type: 'view_dashboard',
+                description: 'Viewed main analytics dashboard',
+                timestamp: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
+                metadata: { page: 'dashboard', duration: '2m 30s' }
+            },
+            {
+                id: 53,
+                action_type: 'cohort_analysis',
+                description: 'Ran cohort analysis with weekly periods',
+                timestamp: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
+                metadata: { cohort_type: 'weekly', periods: 12, metric: 'retention' }
+            },
+            {
+                id: 54,
+                action_type: 'funnel_analysis',
+                description: 'Analyzed user onboarding funnel',
+                timestamp: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
+                metadata: { funnel_type: 'onboarding', date_range: '30 days' }
+            }
+        ];
+
+        return [...currentActivities, ...history];
+    }
+
+    function getActionDescription(actionType) {
+        const descriptions = {
+            'login': 'User logged into the system',
+            'view_dashboard': 'Viewed main analytics dashboard',
+            'create_report': 'Created new analytics report',
+            'export_data': 'Exported data to CSV format',
+            'cohort_analysis': 'Ran cohort retention analysis',
+            'funnel_analysis': 'Analyzed user conversion funnel',
+            'ai_recommendations': 'Generated AI-powered recommendations',
+            'update_settings': 'Updated user preferences',
+            'view_analytics': 'Viewed analytics overview'
+        };
+        return descriptions[actionType] || 'Performed system action';
+    }
+
+    function generateMetadata(actionType) {
+        const metadata = {
+            'login': { device: ['Chrome', 'Firefox', 'Safari'][Math.floor(Math.random() * 3)], ip: `192.168.1.${Math.floor(Math.random() * 255)}` },
+            'view_dashboard': { page: ['dashboard', 'overview', 'home'][Math.floor(Math.random() * 3)], duration: `${Math.floor(Math.random() * 10)}m ${Math.floor(Math.random() * 60)}s` },
+            'create_report': { report_type: ['weekly', 'monthly', 'custom'][Math.floor(Math.random() * 3)], metrics: Math.floor(Math.random() * 10) + 1 },
+            'export_data': { format: ['CSV', 'Excel', 'PDF'][Math.floor(Math.random() * 3)], records: Math.floor(Math.random() * 10000) },
+            'cohort_analysis': { cohort_type: ['weekly', 'monthly'][Math.floor(Math.random() * 2)], periods: Math.floor(Math.random() * 12) + 4 },
+            'funnel_analysis': { funnel_type: ['onboarding', 'purchase', 'signup'][Math.floor(Math.random() * 3)], steps: Math.floor(Math.random() * 5) + 3 },
+            'ai_recommendations': { focus_area: ['retention', 'conversion', 'revenue'][Math.floor(Math.random() * 3)], recommendations: Math.floor(Math.random() * 8) + 2 },
+            'update_settings': { section: ['profile', 'notifications', 'privacy'][Math.floor(Math.random() * 3)] },
+            'view_analytics': { section: ['users', 'revenue', 'engagement'][Math.floor(Math.random() * 3)] }
+        };
+        return metadata[actionType] || {};
+    }
+
+    function renderHistory(history) {
+        const container = document.getElementById('historyList');
+
+        if (history.length === 0) {
+            container.innerHTML = `
+                <div class="text-center py-12">
+                    <i class="fas fa-history text-4xl text-gray-400 mb-4"></i>
+                    <p class="text-gray-600 dark:text-gray-400">No activity history found</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-500 mt-2">Your activity will appear here as you use the system</p>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = history.map(item => `
+            <div class="flex items-start space-x-4 p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                <div class="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
+                    getActionColor(item.action_type)
+                }">
+                    <i class="fas ${getActionIcon(item.action_type)} text-white text-sm"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center justify-between mb-1">
+                        <h4 class="font-medium text-gray-900 dark:text-white truncate">${item.description}</h4>
+                        <span class="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap ml-2">
+                            ${window.DateUtils.getRelativeTime(item.timestamp)}
+                        </span>
+                    </div>
+                    <div class="flex items-center space-x-2 mb-2">
+                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 capitalize">
+                            ${item.action_type.replace(/_/g, ' ')}
+                        </span>
+                    </div>
+                    ${Object.keys(item.metadata).length > 0 ? `
+                        <div class="mt-2 p-2 bg-gray-50 dark:bg-gray-800 rounded text-xs">
+                            <div class="flex flex-wrap gap-2">
+                                ${Object.entries(item.metadata).map(([key, value]) => `
+                                    <span class="inline-flex items-center px-2 py-1 rounded text-xs bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
+                                        <span class="font-medium text-gray-600 dark:text-gray-400">${key}:</span>
+                                        <span class="ml-1 text-gray-800 dark:text-gray-300">${value}</span>
+                                    </span>
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function updateActivityStats(history) {
+        const totalActions = history.length;
+
+        // Count actions from last 7 days
+        const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+        const recentActions = history.filter(item => new Date(item.timestamp) > oneWeekAgo).length;
+
+        // Find most active day
+        const dayCounts = {};
+        history.forEach(item => {
+            const day = new Date(item.timestamp).toLocaleDateString('en-US', { weekday: 'long' });
+            dayCounts[day] = (dayCounts[day] || 0) + 1;
+        });
+
+        let mostActiveDay = 'N/A';
+        let maxCount = 0;
+        Object.entries(dayCounts).forEach(([day, count]) => {
+            if (count > maxCount) {
+                maxCount = count;
+                mostActiveDay = day;
+            }
+        });
+
+        // Get last action time
+        const lastAction = history.length > 0 ? history[0].timestamp : null;
+
+        document.getElementById('totalActions').textContent = totalActions.toLocaleString();
+        document.getElementById('recentActions').textContent = recentActions.toLocaleString();
+        document.getElementById('mostActiveDay').textContent = mostActiveDay;
+        document.getElementById('lastAction').textContent = lastAction ?
+            window.DateUtils.getRelativeTime(lastAction) : 'Never';
+    }
+
+    function getActionColor(actionType) {
+        const colors = {
+            'login': 'bg-green-500',
+            'logout': 'bg-gray-500',
+            'view_dashboard': 'bg-blue-500',
+            'create_report': 'bg-purple-500',
+            'export_data': 'bg-orange-500',
+            'cohort_analysis': 'bg-indigo-500',
+            'funnel_analysis': 'bg-pink-500',
+            'ai_recommendations': 'bg-teal-500',
+            'update_settings': 'bg-gray-600',
+            'view_analytics': 'bg-cyan-500'
+        };
+        return colors[actionType] || 'bg-gray-500';
+    }
+
+    function getActionIcon(actionType) {
+        const icons = {
+            'login': 'fa-sign-in-alt',
+            'logout': 'fa-sign-out-alt',
+            'view_dashboard': 'fa-chart-line',
+            'create_report': 'fa-file-chart-line',
+            'export_data': 'fa-file-export',
+            'cohort_analysis': 'fa-users',
+            'funnel_analysis': 'fa-filter',
+            'ai_recommendations': 'fa-robot',
+            'update_settings': 'fa-cog',
+            'view_analytics': 'fa-chart-bar'
+        };
+        return icons[actionType] || 'fa-history';
+    }
+
+    // Add function to log new activities (can be called from other pages)
+    function logActivity(actionType, description, metadata = {}) {
+        const newActivity = {
+            id: Date.now(),
+            action_type: actionType,
+            description: description,
+            timestamp: new Date().toISOString(),
+            metadata: metadata
+        };
+
+        // Load existing history
+        const existingHistory = JSON.parse(localStorage.getItem('activityHistory') || '[]');
+
+        // Add new activity and keep only last 100 activities
+        const updatedHistory = [newActivity, ...existingHistory].slice(0, 100);
+
+        // Save back to localStorage
+        localStorage.setItem('activityHistory', JSON.stringify(updatedHistory));
+
+        return newActivity;
+    }
+</script>
+
+<style>
+.loading-spinner {
+    border: 3px solid #f3f4f6;
+    border-top: 3px solid #3b82f6;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.card {
+    background: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+}
+
+.dark .card {
+    background: #1f2937;
+}
+</style>
+{% endblock %}

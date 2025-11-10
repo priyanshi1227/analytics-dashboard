@@ -1,0 +1,448 @@
+{% extends "base.html" %}
+
+{% block title %}User Management - AI Analytics{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <!-- Header -->
+    <div class="mb-8">
+        <div class="flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">User Management</h1>
+                <p class="text-gray-600 dark:text-gray-400">Manage user accounts and permissions</p>
+            </div>
+            <button onclick="openCreateUserModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-colors">
+                <i class="fas fa-user-plus mr-2"></i>Add User
+            </button>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div class="card p-6 text-center">
+            <div class="text-2xl font-bold text-blue-600" id="totalUsers">-</div>
+            <div class="text-sm text-gray-600 dark:text-gray-400">Total Users</div>
+        </div>
+        <div class="card p-6 text-center">
+            <div class="text-2xl font-bold text-green-600" id="adminUsers">-</div>
+            <div class="text-sm text-gray-600 dark:text-gray-400">Admins</div>
+        </div>
+        <div class="card p-6 text-center">
+            <div class="text-2xl font-bold text-purple-600" id="activeUsers">-</div>
+            <div class="text-sm text-gray-600 dark:text-gray-400">Active Today</div>
+        </div>
+        <div class="card p-6 text-center">
+            <div class="text-2xl font-bold text-orange-600" id="newUsers">-</div>
+            <div class="text-sm text-gray-600 dark:text-gray-400">New This Week</div>
+        </div>
+    </div>
+
+    <!-- Users Table -->
+    <div class="card p-6">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">All Users</h3>
+            <div class="flex items-center space-x-4">
+                <div class="relative">
+                    <input type="text" id="searchUsers" placeholder="Search users..."
+                           class="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white w-64">
+                    <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead>
+                    <tr class="border-b border-gray-200 dark:border-gray-700">
+                        <th class="text-left py-3 px-4 font-medium text-gray-900 dark:text-white">User</th>
+                        <th class="text-left py-3 px-4 font-medium text-gray-900 dark:text-white">Role</th>
+                        <th class="text-left py-3 px-4 font-medium text-gray-900 dark:text-white">Status</th>
+                        <th class="text-left py-3 px-4 font-medium text-gray-900 dark:text-white">Last Active</th>
+                        <th class="text-left py-3 px-4 font-medium text-gray-900 dark:text-white">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="usersTableBody">
+                    <!-- Users will be loaded here -->
+                </tbody>
+            </table>
+        </div>
+
+        <div id="usersLoading" class="text-center py-8">
+            <div class="loading-spinner mx-auto mb-4"></div>
+            <p class="text-gray-600 dark:text-gray-400">Loading users...</p>
+        </div>
+    </div>
+</div>
+
+<!-- Create User Modal -->
+<div id="userModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+    <div class="bg-white dark:bg-gray-800 rounded-lg w-full max-w-md">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Add New User</h3>
+        </div>
+
+        <form id="userForm" class="p-6 space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Full Name *</label>
+                <input type="text" id="full_name" required
+                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email *</label>
+                <input type="email" id="email" required
+                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Password *</label>
+                <input type="password" id="password" required minlength="6"
+                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Role *</label>
+                <select id="role" required
+                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                    <option value="viewer">Viewer</option>
+                    <option value="analyst">Analyst</option>
+                    <option value="manager">Manager</option>
+                    <option value="admin">Admin</option>
+                </select>
+            </div>
+        </form>
+
+        <div class="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end space-x-3">
+            <button onclick="closeUserModal()" class="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors">
+                Cancel
+            </button>
+            <button onclick="saveUser()" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
+                Create User
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let users = [];
+
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('User management page loaded');
+        loadUsers();
+
+        // Search functionality
+        document.getElementById('searchUsers').addEventListener('input', function(e) {
+            DashboardUtils.debounce(loadUsers, 300)();
+        });
+    });
+
+    function loadUsers() {
+        const search = document.getElementById('searchUsers').value;
+        const loadingElement = document.getElementById('usersLoading');
+        const tableBody = document.getElementById('usersTableBody');
+
+        loadingElement.classList.remove('hidden');
+        tableBody.innerHTML = '';
+
+        // Simulate API delay
+        setTimeout(() => {
+            try {
+                // Generate sample users data
+                const sampleUsers = generateSampleUsers();
+
+                // Load from localStorage if available, otherwise use sample data
+                const savedUsers = JSON.parse(localStorage.getItem('dashboardUsers') || '[]');
+                if (savedUsers.length > 0) {
+                    users = savedUsers;
+                } else {
+                    users = sampleUsers;
+                    localStorage.setItem('dashboardUsers', JSON.stringify(users));
+                }
+
+                // Apply search filter
+                let filteredUsers = users;
+                if (search) {
+                    const searchLower = search.toLowerCase();
+                    filteredUsers = users.filter(user =>
+                        user.full_name.toLowerCase().includes(searchLower) ||
+                        user.email.toLowerCase().includes(searchLower) ||
+                        user.role.toLowerCase().includes(searchLower)
+                    );
+                }
+
+                renderUsersTable(filteredUsers);
+                updateUserStats(filteredUsers);
+
+            } catch (error) {
+                console.error('Error loading users:', error);
+                window.toast.show('Failed to load users', 'error');
+                renderUsersTable([]);
+                updateUserStats([]);
+            } finally {
+                loadingElement.classList.add('hidden');
+            }
+        }, 1000);
+    }
+
+    function generateSampleUsers() {
+        const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+
+        return [
+            {
+                id: 1,
+                full_name: currentUser.full_name || 'Admin User',
+                email: currentUser.email || 'admin@company.com',
+                role: 'admin',
+                last_login: new Date().toISOString(),
+                created_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+                status: 'active'
+            },
+            {
+                id: 2,
+                full_name: 'Sarah Johnson',
+                email: 'sarah.johnson@company.com',
+                role: 'manager',
+                last_login: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+                created_at: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
+                status: 'active'
+            },
+            {
+                id: 3,
+                full_name: 'Mike Chen',
+                email: 'mike.chen@company.com',
+                role: 'analyst',
+                last_login: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
+                created_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+                status: 'active'
+            },
+            {
+                id: 4,
+                full_name: 'Emily Davis',
+                email: 'emily.davis@company.com',
+                role: 'viewer',
+                last_login: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+                created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+                status: 'active'
+            },
+            {
+                id: 5,
+                full_name: 'Alex Rodriguez',
+                email: 'alex.rodriguez@company.com',
+                role: 'analyst',
+                last_login: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+                created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+                status: 'active'
+            },
+            {
+                id: 6,
+                full_name: 'Lisa Wang',
+                email: 'lisa.wang@company.com',
+                role: 'viewer',
+                last_login: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+                created_at: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString(),
+                status: 'active'
+            }
+        ];
+    }
+
+    function renderUsersTable(users) {
+        const container = document.getElementById('usersTableBody');
+
+        if (users.length === 0) {
+            container.innerHTML = `
+                <tr>
+                    <td colspan="5" class="text-center py-8 text-gray-600 dark:text-gray-400">
+                        No users found
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        container.innerHTML = users.map(user => `
+            <tr class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800">
+                <td class="py-4 px-4">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold">
+                            ${user.full_name.split(' ').map(n => n[0]).join('')}
+                        </div>
+                        <div>
+                            <div class="font-medium text-gray-900 dark:text-white">${user.full_name}</div>
+                            <div class="text-sm text-gray-600 dark:text-gray-400">${user.email}</div>
+                        </div>
+                    </div>
+                </td>
+                <td class="py-4 px-4">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        user.role === 'admin' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' :
+                        user.role === 'manager' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' :
+                        user.role === 'analyst' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' :
+                        'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300'
+                    }">
+                        ${user.role}
+                    </span>
+                </td>
+                <td class="py-4 px-4">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        user.status === 'active' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' :
+                        'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300'
+                    }">
+                        <i class="fas fa-circle mr-1 text-xs"></i>
+                        ${user.status === 'active' ? 'Active' : 'Inactive'}
+                    </span>
+                </td>
+                <td class="py-4 px-4 text-sm text-gray-600 dark:text-gray-400">
+                    ${user.last_login ? window.DateUtils.getRelativeTime(user.last_login) : 'Never'}
+                </td>
+                <td class="py-4 px-4">
+                    <div class="flex items-center space-x-2">
+                        <button onclick="editUserRole(${user.id})" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors" title="Edit Role">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        ${user.role !== 'admin' ? `
+                            <button onclick="deleteUser(${user.id})" class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 transition-colors" title="Delete User">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        ` : '<span class="text-gray-400 cursor-not-allowed" title="Cannot delete admin"><i class="fas fa-trash"></i></span>'}
+                    </div>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    function updateUserStats(users) {
+        const totalUsers = users.length;
+        const adminUsers = users.filter(user => user.role === 'admin').length;
+        const activeToday = users.filter(user =>
+            user.last_login && new Date(user.last_login) > new Date(Date.now() - 24 * 60 * 60 * 1000)
+        ).length;
+        const newThisWeek = users.filter(user =>
+            user.created_at && new Date(user.created_at) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+        ).length;
+
+        document.getElementById('totalUsers').textContent = totalUsers;
+        document.getElementById('adminUsers').textContent = adminUsers;
+        document.getElementById('activeUsers').textContent = activeToday;
+        document.getElementById('newUsers').textContent = newThisWeek;
+    }
+
+    function openCreateUserModal() {
+        document.getElementById('userForm').reset();
+        document.getElementById('userModal').classList.remove('hidden');
+    }
+
+    function closeUserModal() {
+        document.getElementById('userModal').classList.add('hidden');
+    }
+
+    function saveUser() {
+        const fullName = document.getElementById('full_name').value;
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const role = document.getElementById('role').value;
+
+        if (!fullName || !email || !password) {
+            window.toast.show('Please fill in all required fields', 'error');
+            return;
+        }
+
+        if (password.length < 6) {
+            window.toast.show('Password must be at least 6 characters', 'error');
+            return;
+        }
+
+        // Check if email already exists
+        const existingUser = users.find(user => user.email === email);
+        if (existingUser) {
+            window.toast.show('User with this email already exists', 'error');
+            return;
+        }
+
+        // Create new user
+        const newUser = {
+            id: Date.now(),
+            full_name: fullName,
+            email: email,
+            role: role,
+            last_login: null,
+            created_at: new Date().toISOString(),
+            status: 'active'
+        };
+
+        // Add to users array and save to localStorage
+        users.push(newUser);
+        localStorage.setItem('dashboardUsers', JSON.stringify(users));
+
+        window.toast.show('User created successfully', 'success');
+        closeUserModal();
+        loadUsers();
+    }
+
+    function editUserRole(userId) {
+        const user = users.find(u => u.id === userId);
+        if (!user) return;
+
+        const newRole = prompt('Enter new role (admin, manager, analyst, viewer):', user.role);
+
+        if (newRole && ['admin', 'manager', 'analyst', 'viewer'].includes(newRole)) {
+            // Update user role
+            const userIndex = users.findIndex(u => u.id === userId);
+            if (userIndex !== -1) {
+                users[userIndex].role = newRole;
+                localStorage.setItem('dashboardUsers', JSON.stringify(users));
+                window.toast.show('User role updated successfully', 'success');
+                loadUsers();
+            }
+        }
+    }
+
+    function deleteUser(userId) {
+        const user = users.find(u => u.id === userId);
+        if (!user) return;
+
+        if (user.role === 'admin') {
+            window.toast.show('Cannot delete admin users', 'error');
+            return;
+        }
+
+        if (!confirm(`Are you sure you want to delete ${user.full_name}? This action cannot be undone.`)) {
+            return;
+        }
+
+        // Remove user from array
+        users = users.filter(u => u.id !== userId);
+        localStorage.setItem('dashboardUsers', JSON.stringify(users));
+
+        window.toast.show('User deleted successfully', 'success');
+        loadUsers();
+    }
+</script>
+
+<style>
+.loading-spinner {
+    border: 3px solid #f3f4f6;
+    border-top: 3px solid #3b82f6;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.card {
+    background: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+}
+
+.dark .card {
+    background: #1f2937;
+}
+</style>
+{% endblock %}

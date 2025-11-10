@@ -1,0 +1,408 @@
+{% extends "base.html" %}
+
+{% block title %}Data Export - AI Analytics{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">Data Export</h1>
+        <p class="text-gray-600 dark:text-gray-400">Export your analytics data in various formats</p>
+    </div>
+
+    <!-- Export Controls -->
+    <div class="card p-6 mb-6">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Export Configuration</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Data Type</label>
+                <select id="dataType" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                    <option value="user_analytics">User Analytics</option>
+                    <option value="feature_usage">Feature Usage</option>
+                    <option value="ab_test_results">A/B Test Results</option>
+                    <option value="general_analytics">General Analytics</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Format</label>
+                <select id="exportFormat" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                    <option value="csv">CSV</option>
+                    <option value="json">JSON</option>
+                    <option value="excel">Excel</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Date Range</label>
+                <select id="dateRange" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                    <option value="7d">Last 7 days</option>
+                    <option value="30d" selected>Last 30 days</option>
+                    <option value="90d">Last 90 days</option>
+                    <option value="custom">Custom Range</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Custom Date Range (hidden by default) -->
+        <div id="customDateRange" class="hidden grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Start Date</label>
+                <input type="date" id="startDate" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">End Date</label>
+                <input type="date" id="endDate" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+            </div>
+        </div>
+
+        <button onclick="exportData()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg transition-colors">
+            <i class="fas fa-download mr-2"></i>Export Data
+        </button>
+    </div>
+
+    <!-- Export History -->
+    <div class="card p-6">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Export History</h3>
+        <div id="exportHistory" class="space-y-3">
+            <!-- Export history will be loaded here -->
+        </div>
+
+        <div id="exportHistoryLoading" class="text-center py-8">
+            <div class="loading-spinner mx-auto mb-4"></div>
+            <p class="text-gray-600 dark:text-gray-400">Loading export history...</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Global variables
+    let exportHistory = [];
+
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeExportDates();
+        loadExportHistory();
+
+        // Show/hide custom date range
+        document.getElementById('dateRange').addEventListener('change', function() {
+            const customRange = document.getElementById('customDateRange');
+            customRange.classList.toggle('hidden', this.value !== 'custom');
+        });
+    });
+
+    function initializeExportDates() {
+        // Set default dates for custom range
+        const today = new Date();
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(today.getDate() - 30);
+
+        document.getElementById('startDate').value = thirtyDaysAgo.toISOString().split('T')[0];
+        document.getElementById('endDate').value = today.toISOString().split('T')[0];
+    }
+
+    async function exportData() {
+        const dataType = document.getElementById('dataType').value;
+        const format = document.getElementById('exportFormat').value;
+        const dateRange = document.getElementById('dateRange').value;
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+
+        // Show loading state
+        const exportButton = document.querySelector('button[onclick="exportData()"]');
+        const originalText = exportButton.innerHTML;
+        exportButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Exporting...';
+        exportButton.disabled = true;
+
+        try {
+            // Generate sample data based on selections
+            const sampleData = generateSampleData(dataType, dateRange, startDate, endDate);
+
+            // Create and download file
+            await downloadFile(sampleData, format, dataType);
+
+            // Add to export history
+            addToExportHistory(dataType, format, sampleData.length);
+
+            showToast('Export completed successfully!', 'success');
+
+        } catch (error) {
+            console.error('Export error:', error);
+            showToast('Export failed: ' + error.message, 'error');
+        } finally {
+            // Restore button state
+            exportButton.innerHTML = originalText;
+            exportButton.disabled = false;
+        }
+    }
+
+    function generateSampleData(dataType, dateRange, startDate, endDate) {
+        const data = [];
+        const recordCount = getRecordCount(dateRange);
+
+        const dataTemplates = {
+            user_analytics: () => ({
+                date: generateDate(startDate, endDate),
+                active_users: Math.floor(Math.random() * 10000) + 5000,
+                new_users: Math.floor(Math.random() * 500) + 100,
+                returning_users: Math.floor(Math.random() * 8000) + 2000,
+                session_duration: (Math.random() * 10 + 5).toFixed(2),
+                bounce_rate: (Math.random() * 30 + 10).toFixed(2)
+            }),
+            feature_usage: () => ({
+                feature_name: ['Dashboard', 'Reports', 'Analytics', 'Settings', 'Export'][Math.floor(Math.random() * 5)],
+                date: generateDate(startDate, endDate),
+                usage_count: Math.floor(Math.random() * 10000) + 1000,
+                unique_users: Math.floor(Math.random() * 5000) + 500,
+                success_rate: (Math.random() * 20 + 80).toFixed(2)
+            }),
+            ab_test_results: () => ({
+                test_id: 'test_' + Math.floor(Math.random() * 1000),
+                variant: ['A', 'B', 'C'][Math.floor(Math.random() * 3)],
+                date: generateDate(startDate, endDate),
+                participants: Math.floor(Math.random() * 10000) + 1000,
+                conversions: Math.floor(Math.random() * 1000) + 100,
+                conversion_rate: (Math.random() * 10 + 5).toFixed(2),
+                revenue: (Math.random() * 10000 + 1000).toFixed(2)
+            }),
+            general_analytics: () => ({
+                date: generateDate(startDate, endDate),
+                page_views: Math.floor(Math.random() * 50000) + 10000,
+                unique_visitors: Math.floor(Math.random() * 20000) + 5000,
+                avg_session_duration: (Math.random() * 8 + 2).toFixed(2),
+                events_count: Math.floor(Math.random() * 100000) + 50000,
+                goal_completions: Math.floor(Math.random() * 5000) + 1000
+            })
+        };
+
+        for (let i = 0; i < recordCount; i++) {
+            data.push(dataTemplates[dataType]());
+        }
+
+        return data;
+    }
+
+    function generateDate(startDate, endDate) {
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        const randomDate = new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
+        return randomDate.toISOString().split('T')[0];
+    }
+
+    function getRecordCount(dateRange) {
+        const counts = {
+            '7d': 50,
+            '30d': 200,
+            '90d': 500,
+            'custom': 300
+        };
+        return counts[dateRange] || 100;
+    }
+
+    function downloadFile(data, format, dataType) {
+        return new Promise((resolve, reject) => {
+            try {
+                let content, mimeType, extension;
+
+                switch (format) {
+                    case 'csv':
+                        content = convertToCSV(data);
+                        mimeType = 'text/csv';
+                        extension = 'csv';
+                        break;
+                    case 'json':
+                        content = JSON.stringify(data, null, 2);
+                        mimeType = 'application/json';
+                        extension = 'json';
+                        break;
+                    case 'excel':
+                        content = convertToCSV(data); // Simplified - in real app use SheetJS
+                        mimeType = 'application/vnd.ms-excel';
+                        extension = 'csv'; // Using CSV as simplified Excel
+                        break;
+                    default:
+                        throw new Error('Unsupported format');
+                }
+
+                const blob = new Blob([content], { type: mimeType });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                const timestamp = new Date().toISOString().split('T')[0];
+
+                a.href = url;
+                a.download = `${dataType}_${timestamp}.${extension}`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+
+                resolve();
+            } catch (error) {
+                reject(error);
+            }
+        });
+    }
+
+    function convertToCSV(data) {
+        if (data.length === 0) return '';
+
+        const headers = Object.keys(data[0]);
+        const csvRows = [
+            headers.join(','),
+            ...data.map(row =>
+                headers.map(header => {
+                    const value = row[header];
+                    return typeof value === 'string' && value.includes(',') ? `"${value}"` : value;
+                }).join(',')
+            )
+        ];
+
+        return csvRows.join('\n');
+    }
+
+    function addToExportHistory(dataType, format, recordCount) {
+        const newExport = {
+            id: Date.now(),
+            data_type: dataType,
+            format: format,
+            file_name: `${dataType}_${new Date().toISOString().split('T')[0]}.${format}`,
+            record_count: recordCount,
+            status: 'completed',
+            created_at: new Date().toISOString()
+        };
+
+        exportHistory.unshift(newExport);
+        localStorage.setItem('exportHistory', JSON.stringify(exportHistory));
+        renderExportHistory(exportHistory);
+    }
+
+    async function loadExportHistory() {
+        const loadingElement = document.getElementById('exportHistoryLoading');
+        const historyElement = document.getElementById('exportHistory');
+
+        try {
+            // Load from localStorage
+            const savedHistory = localStorage.getItem('exportHistory');
+            if (savedHistory) {
+                exportHistory = JSON.parse(savedHistory);
+            } else {
+                // Create sample history
+                exportHistory = [
+                    {
+                        id: 1,
+                        data_type: 'user_analytics',
+                        format: 'csv',
+                        file_name: 'user_analytics_2024-01-15.csv',
+                        record_count: 250,
+                        status: 'completed',
+                        created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
+                    },
+                    {
+                        id: 2,
+                        data_type: 'feature_usage',
+                        format: 'json',
+                        file_name: 'feature_usage_2024-01-14.json',
+                        record_count: 180,
+                        status: 'completed',
+                        created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()
+                    }
+                ];
+                localStorage.setItem('exportHistory', JSON.stringify(exportHistory));
+            }
+
+            renderExportHistory(exportHistory);
+        } catch (error) {
+            console.error('Error loading export history:', error);
+            showToast('Failed to load export history', 'error');
+        } finally {
+            loadingElement.classList.add('hidden');
+        }
+    }
+
+    function renderExportHistory(exports) {
+        const container = document.getElementById('exportHistory');
+
+        if (!exports || exports.length === 0) {
+            container.innerHTML = `
+                <div class="text-center py-8">
+                    <i class="fas fa-file-export text-4xl text-gray-400 mb-4"></i>
+                    <p class="text-gray-600 dark:text-gray-400">No export history</p>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = exports.map(exp => `
+            <div class="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+                <div class="flex items-center space-x-4">
+                    <div class="w-10 h-10 rounded-lg ${
+                        exp.status === 'completed' ? 'bg-green-100 dark:bg-green-900' :
+                        exp.status === 'failed' ? 'bg-red-100 dark:bg-red-900' :
+                        'bg-blue-100 dark:bg-blue-900'
+                    } flex items-center justify-center">
+                        <i class="fas fa-file-${
+                            exp.format === 'csv' ? 'csv' :
+                            exp.format === 'json' ? 'code' :
+                            'excel'
+                        } ${
+                            exp.status === 'completed' ? 'text-green-600 dark:text-green-400' :
+                            exp.status === 'failed' ? 'text-red-600 dark:text-red-400' :
+                            'text-blue-600 dark:text-blue-400'
+                        }"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-medium text-gray-900 dark:text-white">${exp.file_name}</h4>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 capitalize">
+                            ${exp.data_type.replace(/_/g, ' ')} • ${exp.format.toUpperCase()} • ${exp.record_count} records
+                        </p>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <div class="text-sm text-gray-600 dark:text-gray-400">
+                        ${getRelativeTime(exp.created_at)}
+                    </div>
+                    <div class="text-xs ${
+                        exp.status === 'completed' ? 'text-green-600 dark:text-green-400' :
+                        exp.status === 'failed' ? 'text-red-600 dark:text-red-400' :
+                        'text-blue-600 dark:text-blue-400'
+                    } capitalize">
+                        ${exp.status}
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function getRelativeTime(dateString) {
+        const date = new Date(dateString);
+        const now = new Date();
+        const diffInDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
+
+        if (diffInDays === 0) return 'Today';
+        if (diffInDays === 1) return 'Yesterday';
+        if (diffInDays < 7) return `${diffInDays} days ago`;
+        if (diffInDays < 30) return `${Math.floor(diffInDays / 7)} weeks ago`;
+        return `${Math.floor(diffInDays / 30)} months ago`;
+    }
+
+    function showToast(message, type = 'info') {
+        const toast = document.createElement('div');
+        toast.className = `fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg transition-all duration-300 transform translate-x-0 ${
+            type === 'success' ? 'bg-green-500 text-white' :
+            type === 'error' ? 'bg-red-500 text-white' :
+            'bg-blue-500 text-white'
+        }`;
+        toast.textContent = message;
+
+        document.body.appendChild(toast);
+
+        setTimeout(() => {
+            toast.style.transform = 'translateX(100%)';
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.parentNode.removeChild(toast);
+                }
+            }, 300);
+        }, 3000);
+    }
+</script>
+{% endblock %}

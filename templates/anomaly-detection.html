@@ -1,0 +1,458 @@
+{% extends "base.html" %}
+
+{% block title %}Anomaly Detection - AI Analytics{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">Anomaly Detection</h1>
+        <p class="text-gray-600 dark:text-gray-400">Identify unusual patterns and outliers in your data</p>
+    </div>
+
+    <!-- Detection Controls -->
+    <div class="card p-6 mb-6">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Configure Detection</h3>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Metric</label>
+                <select id="detectionMetric" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                    <option value="active_users">Active Users</option>
+                    <option value="revenue">Revenue</option>
+                    <option value="conversion_rate">Conversion Rate</option>
+                    <option value="session_duration">Session Duration</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Time Range</label>
+                <select id="timeRange" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                    <option value="7d">Last 7 days</option>
+                    <option value="30d" selected>Last 30 days</option>
+                    <option value="90d">Last 90 days</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Sensitivity</label>
+                <input type="range" id="sensitivity" min="0.1" max="3" step="0.1" value="2.0"
+                       class="w-full"
+                       oninput="document.getElementById('sensitivityValue').textContent = this.value">
+                <div class="text-center text-sm text-gray-600 dark:text-gray-400">
+                    <span id="sensitivityValue">2.0</span> (Lower = More sensitive)
+                </div>
+            </div>
+            <div class="flex items-end">
+                <button onclick="detectAnomalies()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors">
+                    <i class="fas fa-search mr-2"></i>Detect
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results -->
+    <div id="anomalyResults" class="space-y-6">
+        <!-- Results will be loaded here -->
+    </div>
+
+    <!-- Loading State -->
+    <div id="anomalyLoading" class="hidden text-center py-12">
+        <div class="loading-spinner mx-auto mb-4"></div>
+        <p class="text-gray-600 dark:text-gray-400">Analyzing data for anomalies...</p>
+    </div>
+
+    <!-- Empty State -->
+    <div id="anomalyEmpty" class="hidden text-center py-12">
+        <i class="fas fa-chart-line text-4xl text-gray-400 mb-4"></i>
+        <p class="text-gray-600 dark:text-gray-400">Configure settings and click "Detect" to find anomalies</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- Include Chart.js for visualization -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    let anomalyChart = null;
+
+    // Auto-run detection on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('anomalyEmpty').classList.remove('hidden');
+    });
+
+    async function detectAnomalies() {
+        const metric = document.getElementById('detectionMetric').value;
+        const timeRange = document.getElementById('timeRange').value;
+        const sensitivity = parseFloat(document.getElementById('sensitivity').value);
+
+        const loadingElement = document.getElementById('anomalyLoading');
+        const resultsElement = document.getElementById('anomalyResults');
+        const emptyElement = document.getElementById('anomalyEmpty');
+
+        loadingElement.classList.remove('hidden');
+        resultsElement.innerHTML = '';
+        emptyElement.classList.add('hidden');
+
+        // Simulate API call delay
+        setTimeout(() => {
+            try {
+                const result = generateAnomalyData(metric, timeRange, sensitivity);
+                renderAnomalyResults(result);
+            } catch (error) {
+                console.error('Anomaly detection error:', error);
+                showToast('Failed to detect anomalies', 'error');
+            } finally {
+                loadingElement.classList.add('hidden');
+            }
+        }, 1500);
+    }
+
+    function generateAnomalyData(metric, timeRange, sensitivity) {
+        // Determine number of data points based on time range
+        const dataPoints = timeRange === '7d' ? 7 : timeRange === '30d' ? 30 : 90;
+
+        // Base values for different metrics
+        const baseValues = {
+            active_users: { mean: 10000, std: 2000 },
+            revenue: { mean: 50000, std: 10000 },
+            conversion_rate: { mean: 3.5, std: 0.8 },
+            session_duration: { mean: 180, std: 40 }
+        };
+
+        const config = baseValues[metric];
+        const dates = [];
+        const values = [];
+        const anomalyFlags = [];
+
+        // Generate dates
+        const today = new Date();
+        for (let i = dataPoints - 1; i >= 0; i--) {
+            const date = new Date(today);
+            date.setDate(date.getDate() - i);
+            dates.push(date.toISOString().split('T')[0]);
+        }
+
+        // Generate normal data with some anomalies
+        let anomaliesDetected = 0;
+        const severityLevels = [];
+        const anomalies = [];
+
+        dates.forEach((date, index) => {
+            // Generate base value with normal distribution
+            let value = config.mean + (Math.random() - 0.5) * 2 * config.std;
+
+            // Randomly introduce anomalies based on sensitivity
+            // Lower sensitivity = more anomalies
+            const anomalyChance = (1 / sensitivity) * 0.3; // 0.1 to 0.3 probability
+
+            let isAnomaly = false;
+            let severity = 'low';
+            let zscore = 0;
+            let deviation = 0;
+
+            if (Math.random() < anomalyChance) {
+                isAnomaly = true;
+                anomaliesDetected++;
+
+                // Determine anomaly severity
+                const severityRoll = Math.random();
+                if (severityRoll < 0.1) {
+                    // Critical anomaly - very extreme
+                    value = config.mean + (Math.random() > 0.5 ? 4 : -4) * config.std;
+                    severity = 'critical';
+                } else if (severityRoll < 0.3) {
+                    // High anomaly
+                    value = config.mean + (Math.random() > 0.5 ? 2.5 : -2.5) * config.std;
+                    severity = 'high';
+                } else if (severityRoll < 0.6) {
+                    // Medium anomaly
+                    value = config.mean + (Math.random() > 0.5 ? 1.8 : -1.8) * config.std;
+                    severity = 'medium';
+                } else {
+                    // Low anomaly
+                    value = config.mean + (Math.random() > 0.5 ? 1.2 : -1.2) * config.std;
+                    severity = 'low';
+                }
+
+                // Calculate z-score and deviation
+                zscore = Math.abs((value - config.mean) / config.std);
+                deviation = ((value - config.mean) / config.mean * 100).toFixed(1);
+
+                severityLevels.push({
+                    date: date,
+                    value: metric === 'conversion_rate' ? value.toFixed(2) + '%' :
+                           metric === 'session_duration' ? Math.round(value) + 's' :
+                           Math.round(value).toLocaleString(),
+                    severity: severity,
+                    zscore: zscore.toFixed(2),
+                    deviation: deviation
+                });
+
+                anomalies.push(date);
+            }
+
+            values.push(metric === 'conversion_rate' ? parseFloat(value.toFixed(2)) : Math.round(value));
+            anomalyFlags.push(isAnomaly);
+        });
+
+        // Generate chart data with anomaly points
+        const chartData = {
+            dates: dates,
+            values: values,
+            anomaly_values: values.map((value, index) => anomalyFlags[index] ? value : null)
+        };
+
+        return {
+            total_data_points: dataPoints,
+            anomalies_detected: anomaliesDetected,
+            anomaly_percentage: ((anomaliesDetected / dataPoints) * 100).toFixed(1),
+            sensitivity: sensitivity,
+            severity_levels: severityLevels,
+            anomalies: anomalies,
+            chart_data: chartData,
+            metric: metric
+        };
+    }
+
+    function renderAnomalyResults(data) {
+        const container = document.getElementById('anomalyResults');
+
+        if (data.anomalies_detected === 0) {
+            container.innerHTML = `
+                <div class="text-center py-12">
+                    <i class="fas fa-check-circle text-4xl text-green-400 mb-4"></i>
+                    <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">No Anomalies Detected</h3>
+                    <p class="text-gray-600 dark:text-gray-400">Your data appears normal with current sensitivity settings.</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-500 mt-2">Try adjusting sensitivity to detect more subtle anomalies.</p>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = `
+            <!-- Summary Stats -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+                <div class="card p-6 text-center">
+                    <div class="text-2xl font-bold text-blue-600">${data.total_data_points}</div>
+                    <div class="text-sm text-gray-600 dark:text-gray-400">Data Points</div>
+                </div>
+                <div class="card p-6 text-center">
+                    <div class="text-2xl font-bold text-red-600">${data.anomalies_detected}</div>
+                    <div class="text-sm text-gray-600 dark:text-gray-400">Anomalies Found</div>
+                </div>
+                <div class="card p-6 text-center">
+                    <div class="text-2xl font-bold text-orange-600">${data.anomaly_percentage}%</div>
+                    <div class="text-sm text-gray-600 dark:text-gray-400">Anomaly Rate</div>
+                </div>
+                <div class="card p-6 text-center">
+                    <div class="text-2xl font-bold text-purple-600">${data.sensitivity}</div>
+                    <div class="text-sm text-gray-600 dark:text-gray-400">Sensitivity</div>
+                </div>
+            </div>
+
+            <!-- Anomaly Chart -->
+            <div class="card p-6 mb-6">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Anomaly Timeline - ${getMetricLabel(data.metric)}</h3>
+                <div class="h-80">
+                    <canvas id="anomalyChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Severity Levels -->
+            <div class="card p-6 mb-6">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Anomaly Severity</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    ${data.severity_levels.map(level => `
+                        <div class="text-center p-4 border rounded-lg ${
+                            level.severity === 'critical' ? 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20' :
+                            level.severity === 'high' ? 'border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-900/20' :
+                            level.severity === 'medium' ? 'border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-900/20' :
+                            'border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20'
+                        }">
+                            <div class="text-lg font-bold ${
+                                level.severity === 'critical' ? 'text-red-600 dark:text-red-400' :
+                                level.severity === 'high' ? 'text-orange-600 dark:text-orange-400' :
+                                level.severity === 'medium' ? 'text-yellow-600 dark:text-yellow-400' :
+                                'text-blue-600 dark:text-blue-400'
+                            }">${level.date}</div>
+                            <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">${level.value}</div>
+                            <div class="text-xs ${
+                                level.severity === 'critical' ? 'text-red-700 dark:text-red-300' :
+                                level.severity === 'high' ? 'text-orange-700 dark:text-orange-300' :
+                                level.severity === 'medium' ? 'text-yellow-700 dark:text-yellow-300' :
+                                'text-blue-700 dark:text-blue-300'
+                            } capitalize mt-1">
+                                ${level.severity} • Z-score: ${level.zscore}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+
+            <!-- Detailed Anomaly List -->
+            <div class="card p-6">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Detailed Anomalies</h3>
+                <div class="space-y-3">
+                    ${data.severity_levels.map(level => `
+                        <div class="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+                            <div class="flex items-center space-x-4">
+                                <div class="w-10 h-10 rounded-full flex items-center justify-center ${
+                                    level.severity === 'critical' ? 'bg-red-100 text-red-600 dark:bg-red-900 dark:text-red-400' :
+                                    level.severity === 'high' ? 'bg-orange-100 text-orange-600 dark:bg-orange-900 dark:text-orange-400' :
+                                    level.severity === 'medium' ? 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900 dark:text-yellow-400' :
+                                    'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400'
+                                }">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-medium text-gray-900 dark:text-white">${level.date}</h4>
+                                    <p class="text-sm text-gray-600 dark:text-gray-400">
+                                        Value: ${level.value} • Deviation: ${level.deviation}%
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                    level.severity === 'critical' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' :
+                                    level.severity === 'high' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300' :
+                                    level.severity === 'medium' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' :
+                                    'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300'
+                                } capitalize">
+                                    ${level.severity}
+                                </span>
+                                <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                    Z-score: ${level.zscore}
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+
+        // Render chart
+        renderAnomalyChart(data);
+    }
+
+    function renderAnomalyChart(data) {
+        const ctx = document.getElementById('anomalyChart').getContext('2d');
+
+        if (anomalyChart) {
+            anomalyChart.destroy();
+        }
+
+        // Format dates for better display
+        const formattedDates = data.chart_data.dates.map(date => {
+            const d = new Date(date);
+            return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        });
+
+        anomalyChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: formattedDates,
+                datasets: [
+                    {
+                        label: 'Normal Data',
+                        data: data.chart_data.values,
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        pointBackgroundColor: '#3b82f6',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        pointRadius: 3
+                    },
+                    {
+                        label: 'Anomalies',
+                        data: data.chart_data.anomaly_values,
+                        borderColor: '#ef4444',
+                        backgroundColor: '#ef4444',
+                        pointBackgroundColor: '#ef4444',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 3,
+                        pointRadius: 6,
+                        pointHoverRadius: 8,
+                        showLine: false
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += data.metric === 'conversion_rate' ?
+                                        context.parsed.y + '%' :
+                                        context.parsed.y.toLocaleString();
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.1)'
+                        },
+                        title: {
+                            display: true,
+                            text: getMetricLabel(data.metric)
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function getMetricLabel(metric) {
+        const labels = {
+            active_users: 'Active Users',
+            revenue: 'Revenue ($)',
+            conversion_rate: 'Conversion Rate (%)',
+            session_duration: 'Session Duration (seconds)'
+        };
+        return labels[metric] || metric;
+    }
+
+    function showToast(message, type = 'info') {
+        const toast = document.createElement('div');
+        toast.className = `fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg transition-all duration-300 transform translate-x-0 ${
+            type === 'success' ? 'bg-green-500 text-white' :
+            type === 'error' ? 'bg-red-500 text-white' :
+            'bg-blue-500 text-white'
+        }`;
+        toast.textContent = message;
+
+        document.body.appendChild(toast);
+
+        setTimeout(() => {
+            toast.style.transform = 'translateX(100%)';
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.parentNode.removeChild(toast);
+                }
+            }, 300);
+        }, 3000);
+    }
+</script>
+{% endblock %}

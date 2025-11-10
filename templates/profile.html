@@ -1,0 +1,370 @@
+{% extends "base.html" %}
+
+{% block title %}Profile - AI Analytics{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">Profile Settings</h1>
+        <p class="text-gray-600 dark:text-gray-400">Manage your account settings and preferences</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Profile Information -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Basic Information -->
+            <form id="profileForm" class="card p-6">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Basic Information</h3>
+                <div class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Full Name</label>
+                            <input type="text" id="fullName" name="fullName"
+                                   class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                   value="John Doe">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email</label>
+                            <input type="email" id="email" name="email"
+                                   class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                   value="john.doe@example.com">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Role</label>
+                        <input type="text" readonly
+                               class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-600 text-gray-900 dark:text-white"
+                               value="Administrator">
+                    </div>
+                    <button type="button" onclick="saveProfile()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors">
+                        Save Changes
+                    </button>
+                </div>
+            </form>
+
+            <!-- Security -->
+            <form id="passwordForm" class="card p-6">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Security</h3>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Current Password</label>
+                        <input type="password" id="currentPassword" name="currentPassword"
+                               class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                               placeholder="Enter current password">
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">New Password</label>
+                            <input type="password" id="newPassword" name="newPassword"
+                                   class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                   placeholder="Enter new password">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Confirm Password</label>
+                            <input type="password" id="confirmPassword" name="confirmPassword"
+                                   class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                   placeholder="Confirm new password">
+                        </div>
+                    </div>
+                    <button type="button" onclick="updatePassword()" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg transition-colors">
+                        Update Password
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="space-y-6">
+            <!-- Profile Summary -->
+            <div class="card p-6 text-center">
+                <div class="w-20 h-20 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-2xl mx-auto mb-4">
+                    <span id="profileInitials">JD</span>
+                </div>
+                <h3 id="profileName" class="font-semibold text-gray-900 dark:text-white">John Doe</h3>
+                <p class="text-gray-600 dark:text-gray-400 text-sm mb-2">Administrator</p>
+                <p class="text-gray-500 dark:text-gray-500 text-xs">Member since January 2024</p>
+            </div>
+
+            <!-- Quick Stats -->
+            <div class="card p-6">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Activity</h3>
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600 dark:text-gray-400">Last Login</span>
+                        <span class="font-medium text-gray-900 dark:text-white">2 hours ago</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600 dark:text-gray-400">Sessions Today</span>
+                        <span class="font-medium text-gray-900 dark:text-white">3</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600 dark:text-gray-400">Reports Created</span>
+                        <span class="font-medium text-gray-900 dark:text-white">12</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Preferences -->
+            <div class="card p-6">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Preferences</h3>
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="text-gray-600 dark:text-gray-400">Email Notifications</span>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="emailNotifications" class="sr-only peer" checked>
+                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                        </label>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-gray-600 dark:text-gray-400">Weekly Reports</span>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="weeklyReports" class="sr-only peer">
+                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                        </label>
+                    </div>
+                </div>
+                <button type="button" onclick="savePreferences()" class="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors text-sm">
+                    Save Preferences
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Get user profile data (in a real app, this would come from an API)
+    let userProfile = {
+        fullName: "John Doe",
+        email: "john.doe@example.com",
+        role: "Administrator",
+        preferences: {
+            emailNotifications: true,
+            weeklyReports: false
+        },
+        activity: {
+            lastLogin: "2 hours ago",
+            sessionsToday: 3,
+            reportsCreated: 12
+        }
+    };
+
+    // Initialize form with current data
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeProfileForm();
+        initializePreferences();
+    });
+
+    function initializeProfileForm() {
+        document.getElementById('fullName').value = userProfile.fullName;
+        document.getElementById('email').value = userProfile.email;
+        updateProfileDisplay();
+    }
+
+    function initializePreferences() {
+        document.getElementById('emailNotifications').checked = userProfile.preferences.emailNotifications;
+        document.getElementById('weeklyReports').checked = userProfile.preferences.weeklyReports;
+    }
+
+    function updateProfileDisplay() {
+        const fullName = userProfile.fullName;
+        document.getElementById('profileName').textContent = fullName;
+        document.getElementById('profileInitials').textContent = getInitials(fullName);
+    }
+
+    function getInitials(name) {
+        return name.split(' ').map(word => word[0]).join('').toUpperCase();
+    }
+
+    async function saveProfile() {
+        const fullName = document.getElementById('fullName').value.trim();
+        const email = document.getElementById('email').value.trim();
+
+        // Validation
+        if (!fullName) {
+            toast.show('Please enter your full name', 'error');
+            return;
+        }
+
+        if (!email || !isValidEmail(email)) {
+            toast.show('Please enter a valid email address', 'error');
+            return;
+        }
+
+        try {
+            // Show loading state
+            const button = event.target;
+            const originalText = button.textContent;
+            button.textContent = 'Saving...';
+            button.disabled = true;
+
+            // Simulate API call
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            // Update profile data
+            userProfile.fullName = fullName;
+            userProfile.email = email;
+
+            // Update display
+            updateProfileDisplay();
+
+            toast.show('Profile updated successfully!', 'success');
+
+            // Reset button
+            button.textContent = originalText;
+            button.disabled = false;
+
+        } catch (error) {
+            console.error('Error saving profile:', error);
+            toast.show('Failed to update profile', 'error');
+
+            // Reset button on error
+            const button = event.target;
+            button.textContent = 'Save Changes';
+            button.disabled = false;
+        }
+    }
+
+    async function updatePassword() {
+        const currentPassword = document.getElementById('currentPassword').value;
+        const newPassword = document.getElementById('newPassword').value;
+        const confirmPassword = document.getElementById('confirmPassword').value;
+
+        // Validation
+        if (!currentPassword) {
+            toast.show('Please enter your current password', 'error');
+            return;
+        }
+
+        if (!newPassword) {
+            toast.show('Please enter a new password', 'error');
+            return;
+        }
+
+        if (newPassword.length < 8) {
+            toast.show('Password must be at least 8 characters long', 'error');
+            return;
+        }
+
+        if (newPassword !== confirmPassword) {
+            toast.show('New passwords do not match', 'error');
+            return;
+        }
+
+        try {
+            // Show loading state
+            const button = event.target;
+            const originalText = button.textContent;
+            button.textContent = 'Updating...';
+            button.disabled = true;
+
+            // Simulate API call
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            // Clear form
+            document.getElementById('passwordForm').reset();
+
+            toast.show('Password updated successfully!', 'success');
+
+            // Reset button
+            button.textContent = originalText;
+            button.disabled = false;
+
+        } catch (error) {
+            console.error('Error updating password:', error);
+            toast.show('Failed to update password', 'error');
+
+            // Reset button on error
+            const button = event.target;
+            button.textContent = 'Update Password';
+            button.disabled = false;
+        }
+    }
+
+    async function savePreferences() {
+        const emailNotifications = document.getElementById('emailNotifications').checked;
+        const weeklyReports = document.getElementById('weeklyReports').checked;
+
+        try {
+            // Show loading state
+            const button = event.target;
+            const originalText = button.textContent;
+            button.textContent = 'Saving...';
+            button.disabled = true;
+
+            // Simulate API call
+            await new Promise(resolve => setTimeout(resolve, 800));
+
+            // Update preferences
+            userProfile.preferences.emailNotifications = emailNotifications;
+            userProfile.preferences.weeklyReports = weeklyReports;
+
+            toast.show('Preferences saved successfully!', 'success');
+
+            // Reset button
+            button.textContent = originalText;
+            button.disabled = false;
+
+        } catch (error) {
+            console.error('Error saving preferences:', error);
+            toast.show('Failed to save preferences', 'error');
+
+            // Reset button on error
+            const button = event.target;
+            button.textContent = 'Save Preferences';
+            button.disabled = false;
+        }
+    }
+
+    function isValidEmail(email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
+    }
+
+    // Add real-time validation
+    document.getElementById('email').addEventListener('blur', function() {
+        const email = this.value.trim();
+        if (email && !isValidEmail(email)) {
+            this.classList.add('border-red-500');
+        } else {
+            this.classList.remove('border-red-500');
+        }
+    });
+
+    // Add password strength indicator
+    document.getElementById('newPassword').addEventListener('input', function() {
+        const password = this.value;
+        const strengthIndicator = document.getElementById('passwordStrength') || createPasswordStrengthIndicator();
+
+        if (password.length === 0) {
+            strengthIndicator.textContent = '';
+            return;
+        }
+
+        let strength = 'Weak';
+        let color = 'text-red-600';
+
+        if (password.length >= 12 && /[A-Z]/.test(password) && /[0-9]/.test(password) && /[^A-Za-z0-9]/.test(password)) {
+            strength = 'Strong';
+            color = 'text-green-600';
+        } else if (password.length >= 8) {
+            strength = 'Medium';
+            color = 'text-yellow-600';
+        }
+
+        strengthIndicator.textContent = `Strength: ${strength}`;
+        strengthIndicator.className = `text-xs mt-1 ${color}`;
+    });
+
+    function createPasswordStrengthIndicator() {
+        const input = document.getElementById('newPassword');
+        const indicator = document.createElement('div');
+        indicator.id = 'passwordStrength';
+        indicator.className = 'text-xs mt-1';
+        input.parentNode.appendChild(indicator);
+        return indicator;
+    }
+</script>
+{% endblock %}

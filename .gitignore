@@ -1,0 +1,30 @@
+@"
+# Environment variables
+.env
+.env.local
+
+# Database
+*.db
+*.sqlite
+analytics_dashboard.db
+
+# Logs
+*.log
+app.log
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Data files
+users_data.json
+real_data_config.json
+"@ | Out-File -FilePath .gitignore -Encoding utf8

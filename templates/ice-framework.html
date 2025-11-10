@@ -1,0 +1,619 @@
+{% extends "base.html" %}
+
+{% block title %}ICE Framework - AI Analytics{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <!-- Header -->
+    <div class="mb-8">
+        <div class="flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">ICE Framework</h1>
+                <p class="text-gray-600 dark:text-gray-400">Prioritize initiatives using Impact, Confidence, and Ease scoring</p>
+            </div>
+            <button onclick="openCreateModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-colors">
+                <i class="fas fa-plus mr-2"></i>New Initiative
+            </button>
+        </div>
+    </div>
+
+    <!-- ICE Matrix Overview -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div class="card p-6 text-center">
+            <div class="text-2xl font-bold text-blue-600" id="totalInitiatives">0</div>
+            <div class="text-sm text-gray-600 dark:text-gray-400">Total Initiatives</div>
+        </div>
+        <div class="card p-6 text-center">
+            <div class="text-2xl font-bold text-green-600" id="highPriorityCount">0</div>
+            <div class="text-sm text-gray-600 dark:text-gray-400">High Priority</div>
+        </div>
+        <div class="card p-6 text-center">
+            <div class="text-2xl font-bold text-yellow-600" id="inProgressCount">0</div>
+            <div class="text-sm text-gray-600 dark:text-gray-400">In Progress</div>
+        </div>
+        <div class="card p-6 text-center">
+            <div class="text-2xl font-bold text-purple-600" id="avgIceScore">0</div>
+            <div class="text-sm text-gray-600 dark:text-gray-400">Avg ICE Score</div>
+        </div>
+    </div>
+
+    <!-- Filters and Controls -->
+    <div class="card p-6 mb-6">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
+            <div class="flex flex-wrap gap-4">
+                <select id="statusFilter" onchange="loadInitiatives()" class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                    <option value="">All Status</option>
+                    <option value="pending">Pending</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="completed">Completed</option>
+                    <option value="cancelled">Cancelled</option>
+                </select>
+
+                <select id="priorityFilter" onchange="loadInitiatives()" class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                    <option value="">All Priority</option>
+                    <option value="high">High</option>
+                    <option value="medium">Medium</option>
+                    <option value="low">Low</option>
+                </select>
+
+                <button onclick="loadInitiatives()" class="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors">
+                    <i class="fas fa-refresh mr-2"></i>Refresh
+                </button>
+            </div>
+
+            <div class="flex items-center space-x-4">
+                <div class="relative">
+                    <input type="text" id="searchInitiatives" placeholder="Search initiatives..."
+                           class="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white w-64">
+                    <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Initiatives List -->
+    <div id="initiativesList" class="space-y-4">
+        <!-- Initiatives will be loaded here -->
+    </div>
+
+    <!-- Loading State -->
+    <div id="initiativesLoading" class="text-center py-12">
+        <div class="loading-spinner mx-auto mb-4"></div>
+        <p class="text-gray-600 dark:text-gray-400">Loading initiatives...</p>
+    </div>
+</div>
+
+<!-- Create/Edit Modal -->
+<div id="iceModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+    <div class="bg-white dark:bg-gray-800 rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white" id="modalTitle">Create New Initiative</h3>
+        </div>
+
+        <form id="iceForm" class="p-6 space-y-4">
+            <input type="hidden" id="initiativeId">
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Title *</label>
+                <input type="text" id="title" required
+                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                       placeholder="Enter initiative title">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Description</label>
+                <textarea id="description" rows="3"
+                          class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                          placeholder="Describe the initiative..."></textarea>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Impact (1-10)</label>
+                    <input type="number" id="impact" min="1" max="10" required value="5"
+                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                           onchange="calculateIceScore()">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Confidence (1-10)</label>
+                    <input type="number" id="confidence" min="1" max="10" required value="5"
+                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                           onchange="calculateIceScore()">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Ease (1-10)</label>
+                    <input type="number" id="ease" min="1" max="10" required value="5"
+                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                           onchange="calculateIceScore()">
+                </div>
+            </div>
+
+            <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                <div class="text-center">
+                    <div class="text-sm text-blue-600 dark:text-blue-400 mb-1">ICE Score</div>
+                    <div class="text-3xl font-bold text-blue-600 dark:text-blue-400" id="iceScoreDisplay">5.0</div>
+                    <div class="text-xs text-blue-500 dark:text-blue-300 mt-1">(Impact × Confidence × Ease) ÷ 3</div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Status</label>
+                    <select id="status" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                        <option value="pending">Pending</option>
+                        <option value="in_progress">In Progress</option>
+                        <option value="completed">Completed</option>
+                        <option value="cancelled">Cancelled</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Estimated Effort (days)</label>
+                    <input type="number" id="estimated_effort_days" min="0" value="7"
+                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tags</label>
+                <input type="text" id="tags" placeholder="Add tags separated by commas"
+                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Metrics Affected</label>
+                <input type="text" id="metrics_affected" placeholder="Add metrics separated by commas"
+                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Due Date</label>
+                <input type="date" id="due_date"
+                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+            </div>
+        </form>
+
+        <div class="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end space-x-3">
+            <button onclick="closeModal()" class="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors">
+                Cancel
+            </button>
+            <button onclick="saveInitiative()" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
+                Save Initiative
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let initiatives = [];
+    let nextId = 1;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('DOM loaded, initializing ICE Framework...');
+        initializeSampleData();
+        loadInitiatives();
+
+        // Search functionality
+        const searchInput = document.getElementById('searchInitiatives');
+        if (searchInput) {
+            searchInput.addEventListener('input', function() {
+                clearTimeout(this.searchTimeout);
+                this.searchTimeout = setTimeout(loadInitiatives, 300);
+            });
+        }
+    });
+
+    function initializeSampleData() {
+        const savedInitiatives = localStorage.getItem('iceInitiatives');
+        if (!savedInitiatives) {
+            // Create sample initiatives
+            const sampleInitiatives = [
+                {
+                    id: '1',
+                    title: 'Implement User Onboarding Flow',
+                    description: 'Create a guided onboarding experience for new users to improve activation rates',
+                    impact: 8,
+                    confidence: 7,
+                    ease: 6,
+                    status: 'in_progress',
+                    estimated_effort_days: 14,
+                    tags: ['onboarding', 'activation', 'ux'],
+                    metrics_affected: ['activation_rate', 'user_retention'],
+                    due_date: '2024-02-15',
+                    created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+                    updated_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString()
+                },
+                {
+                    id: '2',
+                    title: 'Optimize Database Queries',
+                    description: 'Improve database performance by optimizing slow queries and adding indexes',
+                    impact: 9,
+                    confidence: 8,
+                    ease: 4,
+                    status: 'pending',
+                    estimated_effort_days: 21,
+                    tags: ['performance', 'database', 'backend'],
+                    metrics_affected: ['page_load_time', 'api_response_time'],
+                    due_date: '2024-03-01',
+                    created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+                    updated_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()
+                },
+                {
+                    id: '3',
+                    title: 'Add Dark Mode Support',
+                    description: 'Implement dark mode theme for better user experience in low-light conditions',
+                    impact: 6,
+                    confidence: 9,
+                    ease: 7,
+                    status: 'completed',
+                    estimated_effort_days: 10,
+                    tags: ['ui', 'ux', 'frontend'],
+                    metrics_affected: ['user_satisfaction', 'engagement'],
+                    due_date: '2024-01-20',
+                    created_at: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
+                    updated_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
+                }
+            ];
+
+            localStorage.setItem('iceInitiatives', JSON.stringify(sampleInitiatives));
+            nextId = 4;
+        } else {
+            // Find the highest ID from existing data
+            const existingInitiatives = JSON.parse(savedInitiatives);
+            const maxId = Math.max(...existingInitiatives.map(init => parseInt(init.id) || 0));
+            nextId = maxId + 1;
+        }
+    }
+
+    function loadInitiatives() {
+        console.log('Loading initiatives from localStorage...');
+
+        const status = document.getElementById('statusFilter').value;
+        const priority = document.getElementById('priorityFilter').value;
+        const search = document.getElementById('searchInitiatives').value.toLowerCase();
+
+        const loadingElement = document.getElementById('initiativesLoading');
+        const listElement = document.getElementById('initiativesList');
+
+        // Show loading state
+        if (loadingElement) loadingElement.classList.remove('hidden');
+        if (listElement) listElement.innerHTML = '';
+
+        try {
+            // Load from localStorage
+            const savedInitiatives = localStorage.getItem('iceInitiatives');
+            initiatives = savedInitiatives ? JSON.parse(savedInitiatives) : [];
+
+            // Filter initiatives
+            let filteredInitiatives = initiatives.filter(initiative => {
+                // Status filter
+                if (status && initiative.status !== status) {
+                    return false;
+                }
+
+                // Priority filter (calculate priority based on ICE score)
+                if (priority) {
+                    const iceScore = calculateIceScoreForInitiative(initiative);
+                    let initiativePriority = 'medium';
+                    if (iceScore >= 7) initiativePriority = 'high';
+                    else if (iceScore <= 4) initiativePriority = 'low';
+
+                    if (initiativePriority !== priority) {
+                        return false;
+                    }
+                }
+
+                // Search filter
+                if (search) {
+                    const searchText = (
+                        initiative.title + ' ' +
+                        initiative.description + ' ' +
+                        (initiative.tags ? initiative.tags.join(' ') : '') + ' ' +
+                        (initiative.metrics_affected ? initiative.metrics_affected.join(' ') : '')
+                    ).toLowerCase();
+
+                    if (!searchText.includes(search)) {
+                        return false;
+                    }
+                }
+
+                return true;
+            });
+
+            // Sort by ICE score (descending)
+            filteredInitiatives.sort((a, b) => {
+                const scoreA = calculateIceScoreForInitiative(a);
+                const scoreB = calculateIceScoreForInitiative(b);
+                return scoreB - scoreA;
+            });
+
+            console.log(`Loaded ${filteredInitiatives.length} initiatives`);
+            renderInitiatives(filteredInitiatives);
+            updateDashboardStats(filteredInitiatives);
+
+        } catch (error) {
+            console.error('Error loading initiatives:', error);
+            showError('Failed to load initiatives: ' + error.message);
+        } finally {
+            if (loadingElement) loadingElement.classList.add('hidden');
+        }
+    }
+
+    function calculateIceScoreForInitiative(initiative) {
+        return (initiative.impact + initiative.confidence + initiative.ease) / 3;
+    }
+
+    function calculateIceScore() {
+        const impact = parseFloat(document.getElementById('impact').value) || 0;
+        const confidence = parseFloat(document.getElementById('confidence').value) || 0;
+        const ease = parseFloat(document.getElementById('ease').value) || 0;
+
+        const iceScore = (impact + confidence + ease) / 3;
+        document.getElementById('iceScoreDisplay').textContent = iceScore.toFixed(1);
+    }
+
+    function updateDashboardStats(initiatives) {
+        const totalInitiatives = initiatives.length;
+
+        // Calculate high priority (ICE score >= 7)
+        const highPriorityCount = initiatives.filter(init => {
+            const iceScore = calculateIceScoreForInitiative(init);
+            return iceScore >= 7;
+        }).length;
+
+        // Count in progress
+        const inProgressCount = initiatives.filter(init => init.status === 'in_progress').length;
+
+        // Calculate average ICE score
+        const avgIceScore = initiatives.length > 0
+            ? initiatives.reduce((sum, init) => sum + calculateIceScoreForInitiative(init), 0) / initiatives.length
+            : 0;
+
+        document.getElementById('totalInitiatives').textContent = totalInitiatives;
+        document.getElementById('highPriorityCount').textContent = highPriorityCount;
+        document.getElementById('inProgressCount').textContent = inProgressCount;
+        document.getElementById('avgIceScore').textContent = avgIceScore.toFixed(1);
+    }
+
+    function renderInitiatives(initiativesToRender) {
+        const container = document.getElementById('initiativesList');
+        if (!container) return;
+
+        if (!initiativesToRender || initiativesToRender.length === 0) {
+            container.innerHTML = `
+                <div class="text-center py-12">
+                    <i class="fas fa-inbox text-4xl text-gray-400 mb-4"></i>
+                    <p class="text-gray-600 dark:text-gray-400">No initiatives found</p>
+                    <p class="text-gray-500 dark:text-gray-500 text-sm mt-2">Try changing your filters or create a new initiative</p>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = initiativesToRender.map(initiative => {
+            const iceScore = calculateIceScoreForInitiative(initiative);
+            let priority = 'medium';
+            if (iceScore >= 7) priority = 'high';
+            else if (iceScore <= 4) priority = 'low';
+
+            return `
+                <div class="card p-6 hover:shadow-lg transition-shadow">
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="flex-1">
+                            <div class="flex items-center space-x-3 mb-2">
+                                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">${initiative.title}</h3>
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                    priority === 'high' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' :
+                                    priority === 'medium' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' :
+                                    'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
+                                }">
+                                    ${priority} priority
+                                </span>
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                    initiative.status === 'completed' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' :
+                                    initiative.status === 'in_progress' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' :
+                                    initiative.status === 'cancelled' ? 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300' :
+                                    'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300'
+                                }">
+                                    ${initiative.status.replace('_', ' ')}
+                                </span>
+                            </div>
+                            <p class="text-gray-600 dark:text-gray-400 mb-3">${initiative.description}</p>
+
+                            ${initiative.tags && initiative.tags.length > 0 ? `
+                            <div class="flex flex-wrap gap-2 mb-3">
+                                ${initiative.tags.map(tag => `
+                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-gray-300">
+                                        ${tag}
+                                    </span>
+                                `).join('')}
+                            </div>
+                            ` : ''}
+                        </div>
+
+                        <div class="text-right ml-4">
+                            <div class="text-2xl font-bold text-blue-600">${iceScore.toFixed(1)}</div>
+                            <div class="text-sm text-gray-600 dark:text-gray-400">ICE Score</div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                        <div class="text-center">
+                            <div class="text-lg font-semibold text-green-600">${initiative.impact}</div>
+                            <div class="text-sm text-gray-600 dark:text-gray-400">Impact</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-lg font-semibold text-blue-600">${initiative.confidence}</div>
+                            <div class="text-sm text-gray-600 dark:text-gray-400">Confidence</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-lg font-semibold text-purple-600">${initiative.ease}</div>
+                            <div class="text-sm text-gray-600 dark:text-gray-400">Ease</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-lg font-semibold text-orange-600">${initiative.estimated_effort_days}</div>
+                            <div class="text-sm text-gray-600 dark:text-gray-400">Effort (days)</div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
+                        <div class="text-sm text-gray-600 dark:text-gray-400">
+                            <i class="fas fa-clock mr-1"></i>
+                            Updated ${formatRelativeTime(initiative.updated_at)}
+                            ${initiative.due_date ? ` • Due ${formatDate(initiative.due_date)}` : ''}
+                        </div>
+
+                        <div class="flex space-x-2">
+                            <button onclick="editInitiative('${initiative.id}')" class="px-3 py-1 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button onclick="deleteInitiative('${initiative.id}')" class="px-3 py-1 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 transition-colors">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function formatRelativeTime(dateString) {
+        try {
+            const date = new Date(dateString);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+            const diffDays = Math.floor(diffMs / 86400000);
+
+            if (diffMins < 1) return 'just now';
+            if (diffMins < 60) return `${diffMins}m ago`;
+            if (diffHours < 24) return `${diffHours}h ago`;
+            if (diffDays < 7) return `${diffDays}d ago`;
+            return formatDate(dateString);
+        } catch (e) {
+            return 'recently';
+        }
+    }
+
+    function formatDate(dateString) {
+        try {
+            const date = new Date(dateString);
+            return date.toLocaleDateString();
+        } catch (e) {
+            return dateString;
+        }
+    }
+
+    function openCreateModal() {
+        document.getElementById('modalTitle').textContent = 'Create New Initiative';
+        document.getElementById('iceForm').reset();
+        document.getElementById('initiativeId').value = '';
+        document.getElementById('status').value = 'pending';
+        document.getElementById('impact').value = 5;
+        document.getElementById('confidence').value = 5;
+        document.getElementById('ease').value = 5;
+        document.getElementById('estimated_effort_days').value = 7;
+        calculateIceScore();
+        document.getElementById('iceModal').classList.remove('hidden');
+    }
+
+    function closeModal() {
+        document.getElementById('iceModal').classList.add('hidden');
+    }
+
+    function editInitiative(id) {
+        const initiative = initiatives.find(init => init.id === id);
+        if (!initiative) {
+            showError('Initiative not found');
+            return;
+        }
+
+        document.getElementById('modalTitle').textContent = 'Edit Initiative';
+        document.getElementById('initiativeId').value = initiative.id;
+        document.getElementById('title').value = initiative.title || '';
+        document.getElementById('description').value = initiative.description || '';
+        document.getElementById('impact').value = initiative.impact || 5;
+        document.getElementById('confidence').value = initiative.confidence || 5;
+        document.getElementById('ease').value = initiative.ease || 5;
+        document.getElementById('status').value = initiative.status || 'pending';
+        document.getElementById('estimated_effort_days').value = initiative.estimated_effort_days || 7;
+        document.getElementById('tags').value = Array.isArray(initiative.tags) ? initiative.tags.join(', ') : initiative.tags || '';
+        document.getElementById('metrics_affected').value = Array.isArray(initiative.metrics_affected) ? initiative.metrics_affected.join(', ') : initiative.metrics_affected || '';
+        document.getElementById('due_date').value = initiative.due_date || '';
+
+        calculateIceScore();
+        document.getElementById('iceModal').classList.remove('hidden');
+    }
+
+    function saveInitiative() {
+        const title = document.getElementById('title').value.trim();
+        if (!title) {
+            showError('Please enter a title for the initiative');
+            return;
+        }
+
+        const data = {
+            id: document.getElementById('initiativeId').value || nextId.toString(),
+            title: title,
+            description: document.getElementById('description').value.trim(),
+            impact: parseInt(document.getElementById('impact').value) || 0,
+            confidence: parseInt(document.getElementById('confidence').value) || 0,
+            ease: parseInt(document.getElementById('ease').value) || 0,
+            status: document.getElementById('status').value,
+            estimated_effort_days: parseInt(document.getElementById('estimated_effort_days').value) || 0,
+            tags: document.getElementById('tags').value.split(',').map(tag => tag.trim()).filter(tag => tag),
+            metrics_affected: document.getElementById('metrics_affected').value.split(',').map(metric => metric.trim()).filter(metric => metric),
+            due_date: document.getElementById('due_date').value || null,
+            updated_at: new Date().toISOString()
+        };
+
+        if (!document.getElementById('initiativeId').value) {
+            // New initiative
+            data.created_at = new Date().toISOString();
+            data.id = nextId.toString();
+            nextId++;
+            initiatives.unshift(data);
+        } else {
+            // Update existing initiative
+            const index = initiatives.findIndex(init => init.id === data.id);
+            if (index !== -1) {
+                // Keep the original created_at
+                data.created_at = initiatives[index].created_at;
+                initiatives[index] = data;
+            } else {
+                showError('Initiative not found');
+                return;
+            }
+        }
+
+        // Save to localStorage
+        localStorage.setItem('iceInitiatives', JSON.stringify(initiatives));
+
+        showSuccess('Initiative saved successfully!');
+        closeModal();
+        loadInitiatives();
+    }
+
+    function deleteInitiative(id) {
+        if (!confirm('Are you sure you want to delete this initiative?')) {
+            return;
+        }
+
+        initiatives = initiatives.filter(init => init.id !== id);
+        localStorage.setItem('iceInitiatives', JSON.stringify(initiatives));
+
+        showSuccess('Initiative deleted successfully!');
+        loadInitiatives();
+    }
+
+    function showError(message) {
+        alert('Error: ' + message);
+    }
+
+    function showSuccess(message) {
+        alert('Success: ' + message);
+    }
+</script>
+{% endblock %}

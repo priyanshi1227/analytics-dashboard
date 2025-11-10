@@ -1,0 +1,937 @@
+{% extends "base.html" %}
+
+{% block title %}A/B Testing - AI Analytics{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <!-- Header -->
+    <div class="mb-8">
+        <div class="flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">A/B Testing</h1>
+                <p class="text-gray-600 dark:text-gray-400">Run experiments and optimize user experiences</p>
+            </div>
+            <button onclick="openCreateTestModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-colors">
+                <i class="fas fa-plus mr-2"></i>New Test
+            </button>
+        </div>
+    </div>
+
+    <!-- Stats Overview -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div class="card p-6 text-center">
+            <div class="text-2xl font-bold text-blue-600" id="totalTests">-</div>
+            <div class="text-sm text-gray-600 dark:text-gray-400">Total Tests</div>
+        </div>
+        <div class="card p-6 text-center">
+            <div class="text-2xl font-bold text-green-600" id="activeTests">-</div>
+            <div class="text-sm text-gray-600 dark:text-gray-400">Active Tests</div>
+        </div>
+        <div class="card p-6 text-center">
+            <div class="text-2xl font-bold text-purple-600" id="completedTests">-</div>
+            <div class="text-sm text-gray-600 dark:text-gray-400">Completed</div>
+        </div>
+        <div class="card p-6 text-center">
+            <div class="text-2xl font-bold text-orange-600" id="avgImprovement">-</div>
+            <div class="text-sm text-gray-600 dark:text-gray-400">Avg Improvement</div>
+        </div>
+    </div>
+
+    <!-- Tests List -->
+    <div class="card p-6">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Active Tests</h3>
+        <div id="testsList" class="space-y-4">
+            <!-- Tests will be loaded here -->
+        </div>
+
+        <div id="testsLoading" class="text-center py-8">
+            <div class="loading-spinner mx-auto mb-4"></div>
+            <p class="text-gray-600 dark:text-gray-400">Loading tests...</p>
+        </div>
+    </div>
+</div>
+
+<!-- Create Test Modal -->
+<div id="testModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+    <div class="bg-white dark:bg-gray-800 rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Create A/B Test</h3>
+        </div>
+
+        <form id="testForm" class="p-6 space-y-6">
+            <!-- Basic Information -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="testName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Test Name *</label>
+                    <input type="text" id="testName" name="testName" required
+                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                           placeholder="Homepage Button Color Test">
+                </div>
+                <div>
+                    <label for="primaryMetric" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Primary Metric *</label>
+                    <select id="primaryMetric" name="primaryMetric" required
+                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                        <option value="conversion_rate">Conversion Rate</option>
+                        <option value="click_through_rate">Click-through Rate</option>
+                        <option value="engagement_rate">Engagement Rate</option>
+                        <option value="revenue_per_user">Revenue per User</option>
+                    </select>
+                </div>
+            </div>
+
+            <div>
+                <label for="hypothesis" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Hypothesis *</label>
+                <textarea id="hypothesis" name="hypothesis" required rows="3"
+                          class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                          placeholder="Changing the button color from blue to green will increase conversion rates by 15%..."></textarea>
+            </div>
+
+            <div>
+                <label for="description" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Description</label>
+                <textarea id="description" name="description" rows="3"
+                          class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                          placeholder="Detailed description of the test and what you're trying to achieve..."></textarea>
+            </div>
+
+            <!-- Variants -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">Variants</label>
+                <div id="variantsContainer" class="space-y-4">
+                    <div class="variant-item p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Name</label>
+                                <input type="text" name="variantName" value="Control" required
+                                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Description</label>
+                                <input type="text" name="variantDescription" value="Current version" required
+                                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Allocation %</label>
+                                <input type="number" name="variantAllocation" value="50" min="1" max="100" required
+                                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <button type="button" onclick="addVariant()" class="mt-2 px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors">
+                    <i class="fas fa-plus mr-2"></i>Add Variant
+                </button>
+            </div>
+
+            <!-- Test Configuration -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="durationDays" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Duration (days)</label>
+                    <input type="number" id="durationDays" name="durationDays" value="14" min="1" max="90"
+                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                </div>
+                <div>
+                    <label for="sampleSize" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Target Sample Size</label>
+                    <input type="number" id="sampleSize" name="sampleSize" value="1000" min="100"
+                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                </div>
+            </div>
+
+            <!-- Target Audience -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Target Audience</label>
+                <div class="space-y-3">
+                    <div class="flex items-center space-x-4">
+                        <select name="userType" class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                            <option value="all">All Users</option>
+                            <option value="new">New Users</option>
+                            <option value="returning">Returning Users</option>
+                        </select>
+                        <select name="deviceType" class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                            <option value="all">All Devices</option>
+                            <option value="desktop">Desktop Only</option>
+                            <option value="mobile">Mobile Only</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </form>
+
+        <div class="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end space-x-3">
+            <button type="button" onclick="closeTestModal()" class="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors">
+                Cancel
+            </button>
+            <button type="button" onclick="saveTest()" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
+                Create Test
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Results Modal -->
+<div id="resultsModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+    <div class="bg-white dark:bg-gray-800 rounded-lg w-full max-w-6xl max-h-[95vh] overflow-y-auto">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+            <div>
+                <h3 class="text-xl font-semibold text-gray-900 dark:text-white" id="resultsTitle">Test Results</h3>
+                <p class="text-gray-600 dark:text-gray-400 mt-1" id="resultsDescription"></p>
+            </div>
+            <button onclick="closeResultsModal()" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+
+        <div class="p-6">
+            <!-- Results Summary -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+                <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg text-center">
+                    <div class="text-2xl font-bold text-blue-600 dark:text-blue-400" id="totalParticipants">-</div>
+                    <div class="text-sm text-blue-600 dark:text-blue-400">Total Participants</div>
+                </div>
+                <div class="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg text-center">
+                    <div class="text-2xl font-bold text-green-600 dark:text-green-400" id="totalConversions">-</div>
+                    <div class="text-sm text-green-600 dark:text-green-400">Total Conversions</div>
+                </div>
+                <div class="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg text-center">
+                    <div class="text-2xl font-bold text-purple-600 dark:text-purple-400" id="confidenceLevel">-</div>
+                    <div class="text-sm text-purple-600 dark:text-purple-400">Confidence Level</div>
+                </div>
+                <div class="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-lg text-center">
+                    <div class="text-2xl font-bold text-orange-600 dark:text-orange-400" id="bestImprovement">-</div>
+                    <div class="text-sm text-orange-600 dark:text-orange-400">Best Improvement</div>
+                </div>
+            </div>
+
+            <!-- Winner Banner -->
+            <div id="winnerBanner" class="hidden mb-6 p-4 rounded-lg bg-gradient-to-r from-green-500 to-green-600 text-white">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <i class="fas fa-trophy text-2xl"></i>
+                        <div>
+                            <h4 class="font-semibold">Winner Identified!</h4>
+                            <p id="winnerMessage" class="text-sm opacity-90"></p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-2xl font-bold" id="winnerImprovement"></div>
+                        <div class="text-sm opacity-90">Improvement</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Variants Comparison -->
+            <div class="mb-8">
+                <h4 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Variants Performance</h4>
+                <div id="variantsComparison" class="space-y-4">
+                    <!-- Variants will be populated here -->
+                </div>
+            </div>
+
+            <!-- Charts -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                <div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-6">
+                    <h5 class="font-semibold text-gray-900 dark:text-white mb-4">Conversion Rates</h5>
+                    <div class="chart-container" style="height: 300px;">
+                        <canvas id="conversionChart"></canvas>
+                    </div>
+                </div>
+                <div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-6">
+                    <h5 class="font-semibold text-gray-900 dark:text-white mb-4">Performance Over Time</h5>
+                    <div class="chart-container" style="height: 300px;">
+                        <canvas id="trendChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Statistical Significance -->
+            <div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-6">
+                <h5 class="font-semibold text-gray-900 dark:text-white mb-4">Statistical Analysis</h5>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                    <div>
+                        <div class="text-gray-600 dark:text-gray-400">P-value</div>
+                        <div class="font-semibold text-gray-900 dark:text-white" id="pValue">-</div>
+                    </div>
+                    <div>
+                        <div class="text-gray-600 dark:text-gray-400">Statistical Power</div>
+                        <div class="font-semibold text-gray-900 dark:text-white" id="statisticalPower">-</div>
+                    </div>
+                    <div>
+                        <div class="text-gray-600 dark:text-gray-400">Recommended Action</div>
+                        <div class="font-semibold" id="recommendedAction">-</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end space-x-3">
+            <button onclick="closeResultsModal()" class="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors">
+                Close
+            </button>
+            <button onclick="exportResults()" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
+                <i class="fas fa-download mr-2"></i>Export Results
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- Include Chart.js for visualization -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    // Global variables
+    let allTests = [];
+    let nextTestId = 1;
+    let currentResults = null;
+    let chartInstances = [];
+
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeTests();
+        loadTests();
+    });
+
+    function initializeTests() {
+        const savedTests = localStorage.getItem('abTests');
+        if (!savedTests) {
+            const sampleTests = [
+                {
+                    id: 1,
+                    name: "Button Color Test",
+                    description: "Testing different button colors for conversion optimization",
+                    hypothesis: "Green buttons will convert better than blue buttons",
+                    status: "running",
+                    primary_metric: "conversion_rate",
+                    variants: [
+                        { name: "Control", description: "Blue button", allocation: 0.5 },
+                        { name: "Variant A", description: "Green button", allocation: 0.5 }
+                    ],
+                    duration_days: 14,
+                    participants: 1250,
+                    conversions: 89,
+                    created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+                    started_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
+                },
+                {
+                    id: 2,
+                    name: "Headline Optimization",
+                    description: "Testing different headline variations for engagement",
+                    hypothesis: "Question-based headlines will increase engagement",
+                    status: "draft",
+                    primary_metric: "engagement_rate",
+                    variants: [
+                        { name: "Control", description: "Standard headline", allocation: 0.33 },
+                        { name: "Variant A", description: "Question headline", allocation: 0.33 },
+                        { name: "Variant B", description: "Benefit-focused headline", allocation: 0.34 }
+                    ],
+                    duration_days: 21,
+                    participants: 0,
+                    conversions: 0,
+                    created_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString()
+                }
+            ];
+            localStorage.setItem('abTests', JSON.stringify(sampleTests));
+            nextTestId = 3;
+        }
+    }
+
+    async function loadTests() {
+        const loadingElement = document.getElementById('testsLoading');
+        const listElement = document.getElementById('testsList');
+
+        try {
+            const savedTests = localStorage.getItem('abTests');
+            if (savedTests) {
+                allTests = JSON.parse(savedTests);
+                const maxId = Math.max(...allTests.map(test => test.id));
+                nextTestId = maxId + 1;
+            }
+
+            renderTests(allTests);
+            updateTestStats(allTests);
+
+        } catch (error) {
+            console.error('Error loading tests:', error);
+            showToast('Failed to load tests', 'error');
+        } finally {
+            loadingElement.classList.add('hidden');
+        }
+    }
+
+    function renderTests(tests) {
+        const container = document.getElementById('testsList');
+
+        if (!tests || tests.length === 0) {
+            container.innerHTML = `
+                <div class="text-center py-12">
+                    <i class="fas fa-vial text-4xl text-gray-400 mb-4"></i>
+                    <p class="text-gray-600 dark:text-gray-400">No A/B tests running</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-500 mt-2">Create your first test to start optimizing user experiences</p>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = tests.map(test => `
+            <div class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                <div class="bg-gray-50 dark:bg-gray-800 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            <h4 class="font-semibold text-gray-900 dark:text-white">${test.name}</h4>
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                test.status === 'running' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' :
+                                test.status === 'draft' ? 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300' :
+                                test.status === 'paused' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' :
+                                'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300'
+                            }">
+                                ${test.status}
+                            </span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            ${test.status === 'draft' ? `
+                                <button onclick="startTest(${test.id})" class="px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm transition-colors">
+                                    Start
+                                </button>
+                            ` : ''}
+                            <button onclick="viewResults(${test.id})" class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors">
+                                Results
+                            </button>
+                        </div>
+                    </div>
+                    <p class="text-gray-600 dark:text-gray-400 mt-1">${test.description || 'No description'}</p>
+                </div>
+
+                <div class="p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                        <div class="text-center">
+                            <div class="text-lg font-semibold text-gray-900 dark:text-white">${test.variants?.length || 0}</div>
+                            <div class="text-sm text-gray-600 dark:text-gray-400">Variants</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-lg font-semibold text-gray-900 dark:text-white">${test.duration_days}</div>
+                            <div class="text-sm text-gray-600 dark:text-gray-400">Duration (days)</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-lg font-semibold text-gray-900 dark:text-white">${test.participants || 0}</div>
+                            <div class="text-sm text-gray-600 dark:text-gray-400">Participants</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-lg font-semibold text-gray-900 dark:text-white">${test.conversions || 0}</div>
+                            <div class="text-sm text-gray-600 dark:text-gray-400">Conversions</div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
+                        <span>Created ${getRelativeTime(test.created_at)}</span>
+                        ${test.started_at ? `<span>Started ${getRelativeTime(test.started_at)}</span>` : ''}
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function updateTestStats(tests) {
+        const totalTests = tests.length;
+        const activeTests = tests.filter(test => test.status === 'running').length;
+        const completedTests = tests.filter(test => test.status === 'completed').length;
+
+        document.getElementById('totalTests').textContent = totalTests;
+        document.getElementById('activeTests').textContent = activeTests;
+        document.getElementById('completedTests').textContent = completedTests;
+        document.getElementById('avgImprovement').textContent = '15.2%';
+    }
+
+    function openCreateTestModal() {
+        document.getElementById('testForm').reset();
+        const container = document.getElementById('variantsContainer');
+        container.innerHTML = `
+            <div class="variant-item p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Name</label>
+                        <input type="text" name="variantName" value="Control" required
+                               class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Description</label>
+                        <input type="text" name="variantDescription" value="Current version" required
+                               class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Allocation %</label>
+                        <input type="number" name="variantAllocation" value="50" min="1" max="100" required
+                               class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                    </div>
+                </div>
+            </div>
+        `;
+        document.getElementById('testModal').classList.remove('hidden');
+    }
+
+    function closeTestModal() {
+        document.getElementById('testModal').classList.add('hidden');
+    }
+
+    function addVariant() {
+        const container = document.getElementById('variantsContainer');
+        const variantCount = container.children.length;
+
+        const variantDiv = document.createElement('div');
+        variantDiv.className = 'variant-item p-4 border border-gray-200 dark:border-gray-700 rounded-lg';
+        variantDiv.innerHTML = `
+            <div class="flex items-center justify-between mb-2">
+                <span class="font-medium text-gray-900 dark:text-white">Variant ${variantCount + 1}</span>
+                <button type="button" onclick="removeVariant(this)" class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Name</label>
+                    <input type="text" name="variantName" value="Variant ${String.fromCharCode(65 + variantCount)}" required
+                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Description</label>
+                    <input type="text" name="variantDescription" required
+                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                           placeholder="Description of this variant">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Allocation %</label>
+                    <input type="number" name="variantAllocation" value="${Math.floor(50 / (variantCount + 1))}" min="1" max="100" required
+                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                </div>
+            </div>
+        `;
+        container.appendChild(variantDiv);
+
+        updateAllocationPercentages();
+    }
+
+    function removeVariant(button) {
+        if (document.getElementById('variantsContainer').children.length > 1) {
+            button.closest('.variant-item').remove();
+            updateAllocationPercentages();
+        }
+    }
+
+    function updateAllocationPercentages() {
+        const variants = document.querySelectorAll('.variant-item');
+        const equalAllocation = Math.floor(100 / variants.length);
+
+        variants.forEach((variant, index) => {
+            const input = variant.querySelector('input[type="number"]');
+            input.value = index === variants.length - 1 ? 100 - (equalAllocation * (variants.length - 1)) : equalAllocation;
+        });
+    }
+
+    async function saveTest() {
+        const testName = document.getElementById('testName').value.trim();
+        const hypothesis = document.getElementById('hypothesis').value.trim();
+        const description = document.getElementById('description').value.trim();
+        const primaryMetric = document.getElementById('primaryMetric').value;
+        const durationDays = parseInt(document.getElementById('durationDays').value);
+        const sampleSize = parseInt(document.getElementById('sampleSize').value);
+
+        const variantItems = document.querySelectorAll('.variant-item');
+        const variants = Array.from(variantItems).map(item => {
+            const inputs = item.querySelectorAll('input');
+            return {
+                name: inputs[0].value,
+                description: inputs[1].value,
+                allocation: parseFloat(inputs[2].value) / 100
+            };
+        });
+
+        if (!testName) {
+            showToast('Please enter a test name', 'error');
+            document.getElementById('testName').focus();
+            return;
+        }
+
+        if (!hypothesis) {
+            showToast('Please enter a hypothesis', 'error');
+            document.getElementById('hypothesis').focus();
+            return;
+        }
+
+        const totalAllocation = variants.reduce((sum, variant) => sum + variant.allocation, 0);
+        if (Math.abs(totalAllocation - 1) > 0.01) {
+            showToast('Variant allocations must sum to 100%', 'error');
+            return;
+        }
+
+        const newTest = {
+            id: nextTestId++,
+            name: testName,
+            description: description,
+            hypothesis: hypothesis,
+            variants: variants,
+            primary_metric: primaryMetric,
+            duration_days: durationDays,
+            target_audience: {
+                sample_size: sampleSize
+            },
+            status: 'draft',
+            participants: 0,
+            conversions: 0,
+            created_at: new Date().toISOString()
+        };
+
+        try {
+            allTests.unshift(newTest);
+            localStorage.setItem('abTests', JSON.stringify(allTests));
+
+            showToast('A/B test created successfully!', 'success');
+            closeTestModal();
+            renderTests(allTests);
+            updateTestStats(allTests);
+
+        } catch (error) {
+            console.error('Error creating test:', error);
+            showToast('Failed to create test', 'error');
+        }
+    }
+
+    async function startTest(testId) {
+        try {
+            const test = allTests.find(t => t.id === testId);
+            if (test) {
+                test.status = 'running';
+                test.started_at = new Date().toISOString();
+                // Generate initial participants
+                test.participants = Math.floor(Math.random() * 500) + 100;
+                test.conversions = Math.floor(test.participants * (Math.random() * 0.1 + 0.05));
+                localStorage.setItem('abTests', JSON.stringify(allTests));
+                showToast('Test started successfully!', 'success');
+                renderTests(allTests);
+                updateTestStats(allTests);
+            }
+        } catch (error) {
+            console.error('Error starting test:', error);
+            showToast('Failed to start test', 'error');
+        }
+    }
+
+    async function viewResults(testId) {
+        try {
+            const test = allTests.find(t => t.id === testId);
+            if (test) {
+                currentResults = generateDetailedResults(test);
+                displayResults(test, currentResults);
+                document.getElementById('resultsModal').classList.remove('hidden');
+            }
+        } catch (error) {
+            console.error('Error loading results:', error);
+            showToast('Failed to load results', 'error');
+        }
+    }
+
+    function closeResultsModal() {
+        // Clean up charts
+        chartInstances.forEach(chart => {
+            if (chart && typeof chart.destroy === 'function') {
+                chart.destroy();
+            }
+        });
+        chartInstances = [];
+
+        document.getElementById('resultsModal').classList.add('hidden');
+    }
+
+    function generateDetailedResults(test) {
+        const variants = test.variants.map(variant => {
+            const participants = Math.floor(test.participants * variant.allocation);
+            const conversions = Math.floor(participants * (Math.random() * 0.15 + 0.05)); // 5-20% conversion rate
+            const conversionRate = (conversions / participants * 100).toFixed(2);
+
+            return {
+                name: variant.name,
+                description: variant.description,
+                participants: participants,
+                conversions: conversions,
+                conversionRate: parseFloat(conversionRate),
+                allocation: variant.allocation
+            };
+        });
+
+        // Find best performing variant
+        const bestVariant = variants.reduce((best, current) =>
+            current.conversionRate > best.conversionRate ? current : best
+        );
+        const control = variants.find(v => v.name === 'Control') || variants[0];
+        const improvement = ((bestVariant.conversionRate - control.conversionRate) / control.conversionRate * 100).toFixed(1);
+
+        // Statistical calculations
+        const pValue = (Math.random() * 0.1).toFixed(3); // Random p-value between 0 and 0.1
+        const confidence = (100 - (pValue * 100)).toFixed(1);
+        const significant = pValue < 0.05;
+
+        return {
+            variants: variants,
+            bestVariant: bestVariant,
+            improvement: parseFloat(improvement),
+            pValue: parseFloat(pValue),
+            confidence: parseFloat(confidence),
+            significant: significant,
+            totalParticipants: test.participants,
+            totalConversions: variants.reduce((sum, v) => sum + v.conversions, 0)
+        };
+    }
+
+    function displayResults(test, results) {
+        // Set basic info
+        document.getElementById('resultsTitle').textContent = test.name + ' - Results';
+        document.getElementById('resultsDescription').textContent = test.description;
+
+        // Update summary cards
+        document.getElementById('totalParticipants').textContent = results.totalParticipants.toLocaleString();
+        document.getElementById('totalConversions').textContent = results.totalConversions.toLocaleString();
+        document.getElementById('confidenceLevel').textContent = results.confidence + '%';
+        document.getElementById('bestImprovement').textContent = results.improvement + '%';
+
+        // Show winner banner if significant
+        const winnerBanner = document.getElementById('winnerBanner');
+        if (results.significant && results.improvement > 0) {
+            winnerBanner.classList.remove('hidden');
+            document.getElementById('winnerMessage').textContent =
+                `${results.bestVariant.name} is performing significantly better than Control`;
+            document.getElementById('winnerImprovement').textContent = results.improvement + '%';
+        } else {
+            winnerBanner.classList.add('hidden');
+        }
+
+        // Display variants comparison
+        const variantsContainer = document.getElementById('variantsComparison');
+        variantsContainer.innerHTML = results.variants.map(variant => {
+            const isBest = variant.name === results.bestVariant.name;
+            const improvement = ((variant.conversionRate - results.variants[0].conversionRate) / results.variants[0].conversionRate * 100).toFixed(1);
+
+            return `
+                <div class="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg ${isBest ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' : ''}">
+                    <div class="flex items-center space-x-4">
+                        <div class="w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
+                            <span class="font-semibold text-blue-600 dark:text-blue-400">${variant.name.charAt(0)}</span>
+                        </div>
+                        <div>
+                            <h5 class="font-semibold text-gray-900 dark:text-white">${variant.name}</h5>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">${variant.description}</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-lg font-bold text-gray-900 dark:text-white">${variant.conversionRate}%</div>
+                        <div class="text-sm ${parseFloat(improvement) >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}">
+                            ${improvement >= 0 ? '+' : ''}${improvement}%
+                        </div>
+                        <div class="text-xs text-gray-500 dark:text-gray-400">
+                            ${variant.conversions}/${variant.participants} conversions
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        // Create charts
+        createConversionChart(results);
+        createTrendChart(results);
+
+        // Update statistical analysis
+        document.getElementById('pValue').textContent = results.pValue;
+        document.getElementById('statisticalPower').textContent = (results.pValue < 0.05 ? 'High' : 'Low');
+
+        const actionElement = document.getElementById('recommendedAction');
+        if (results.significant && results.improvement > 0) {
+            actionElement.textContent = 'Implement winning variant';
+            actionElement.className = 'font-semibold text-green-600 dark:text-green-400';
+        } else if (results.significant && results.improvement < 0) {
+            actionElement.textContent = 'Keep control variant';
+            actionElement.className = 'font-semibold text-red-600 dark:text-red-400';
+        } else {
+            actionElement.textContent = 'Continue testing';
+            actionElement.className = 'font-semibold text-yellow-600 dark:text-yellow-400';
+        }
+    }
+
+    function createConversionChart(results) {
+        const ctx = document.getElementById('conversionChart').getContext('2d');
+
+        const chart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: results.variants.map(v => v.name),
+                datasets: [{
+                    label: 'Conversion Rate (%)',
+                    data: results.variants.map(v => v.conversionRate),
+                    backgroundColor: results.variants.map((v, i) =>
+                        v.name === results.bestVariant.name ?
+                        'rgba(34, 197, 94, 0.8)' :
+                        `rgba(59, 130, 246, ${0.6 + i * 0.2})`
+                    ),
+                    borderColor: results.variants.map((v, i) =>
+                        v.name === results.bestVariant.name ?
+                        'rgb(34, 197, 94)' :
+                        `rgb(59, 130, 246)`
+                    ),
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const variant = results.variants[context.dataIndex];
+                                return `Conversion Rate: ${variant.conversionRate}% (${variant.conversions}/${variant.participants} users)`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Conversion Rate (%)'
+                        }
+                    }
+                }
+            }
+        });
+
+        chartInstances.push(chart);
+    }
+
+    function createTrendChart(results) {
+        const ctx = document.getElementById('trendChart').getContext('2d');
+
+        // Generate trend data for the last 7 days
+        const days = 7;
+        const labels = Array.from({length: days}, (_, i) => `Day ${i + 1}`);
+
+        const datasets = results.variants.map((variant, index) => {
+            const baseRate = variant.conversionRate;
+            const trendData = Array.from({length: days}, (_, i) => {
+                const noise = (Math.random() - 0.5) * 2;
+                return Math.max(0, baseRate + noise);
+            });
+
+            return {
+                label: variant.name,
+                data: trendData,
+                borderColor: variant.name === results.bestVariant.name ?
+                    'rgb(34, 197, 94)' :
+                    `hsl(${index * 120}, 70%, 50%)`,
+                backgroundColor: variant.name === results.bestVariant.name ?
+                    'rgba(34, 197, 94, 0.1)' :
+                    `hsla(${index * 120}, 70%, 50%, 0.1)`,
+                tension: 0.4,
+                fill: true
+            };
+        });
+
+        const chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: datasets
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Conversion Rate (%)'
+                        }
+                    }
+                }
+            }
+        });
+
+        chartInstances.push(chart);
+    }
+
+    function exportResults() {
+        if (!currentResults) return;
+
+        const csvContent = convertResultsToCSV(currentResults);
+        const blob = new Blob([csvContent], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+
+        a.href = url;
+        a.download = `ab-test-results-${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+
+        showToast('Results exported successfully!', 'success');
+    }
+
+    function convertResultsToCSV(results) {
+        const headers = ['Variant', 'Description', 'Participants', 'Conversions', 'Conversion Rate', 'Improvement vs Control'];
+        const rows = results.variants.map(variant => {
+            const improvement = ((variant.conversionRate - results.variants[0].conversionRate) / results.variants[0].conversionRate * 100).toFixed(1);
+            return [
+                variant.name,
+                variant.description,
+                variant.participants,
+                variant.conversions,
+                `${variant.conversionRate}%`,
+                `${improvement}%`
+            ];
+        });
+
+        return [
+            headers.join(','),
+            ...rows.map(row => row.join(','))
+        ].join('\n');
+    }
+
+    function getRelativeTime(dateString) {
+        const date = new Date(dateString);
+        const now = new Date();
+        const diffInDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
+
+        if (diffInDays === 0) return 'Today';
+        if (diffInDays === 1) return 'Yesterday';
+        if (diffInDays < 7) return `${diffInDays} days ago`;
+        if (diffInDays < 30) return `${Math.floor(diffInDays / 7)} weeks ago`;
+        return `${Math.floor(diffInDays / 30)} months ago`;
+    }
+
+    function showToast(message, type = 'info') {
+        const toast = document.createElement('div');
+        toast.className = `fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg transition-all duration-300 transform translate-x-0 ${
+            type === 'success' ? 'bg-green-500 text-white' :
+            type === 'error' ? 'bg-red-500 text-white' :
+            'bg-blue-500 text-white'
+        }`;
+        toast.textContent = message;
+
+        document.body.appendChild(toast);
+
+        setTimeout(() => {
+            toast.style.transform = 'translateX(100%)';
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.parentNode.removeChild(toast);
+                }
+            }, 300);
+        }, 3000);
+    }
+</script>
+{% endblock %}
