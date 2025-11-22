@@ -20,3 +20,4 @@ stripe==7.0.0
 python-dateutil==2.8.2
 pytz==2023.3
 PyJWT==2.8.0
+psycopg2==2.9.11
