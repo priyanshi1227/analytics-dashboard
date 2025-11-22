@@ -1,124 +1,303 @@
 {% extends "base.html" %}
 
-{% block title %}User Management - AI Analytics{% endblock %}
+{% block title %}User Management - AI Analytics Dashboard{% endblock %}
 
 {% block content %}
 <div class="fade-in">
-    <!-- Header -->
-    <div class="mb-8">
-        <div class="flex justify-between items-center">
-            <div>
-                <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">User Management</h1>
-                <p class="text-gray-600 dark:text-gray-400">Manage user accounts and permissions</p>
+    <!-- Header Section -->
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">User Management</h1>
+            <p class="text-gray-600 dark:text-gray-400 mt-1">Manage users, roles, and permissions across your organization</p>
+        </div>
+        <button id="addUserBtn" class="btn bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2">
+            <i class="fas fa-user-plus"></i>
+            <span>Add User</span>
+        </button>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        <div class="stat-card card p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-600 dark:text-gray-400 text-sm font-medium">Total Users</p>
+                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white mt-1" id="totalUsers">0</h3>
+                </div>
+                <div class="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
+                    <i class="fas fa-users text-blue-600 dark:text-blue-400 text-xl"></i>
+                </div>
             </div>
-            <button onclick="openCreateUserModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-colors">
-                <i class="fas fa-user-plus mr-2"></i>Add User
-            </button>
+            <div class="mt-4 flex items-center text-sm">
+                <span class="text-green-600 dark:text-green-400 flex items-center">
+                    <i class="fas fa-arrow-up mr-1"></i>
+                    <span id="userGrowth">0%</span>
+                </span>
+                <span class="text-gray-500 dark:text-gray-400 ml-2">from last month</span>
+            </div>
+        </div>
+
+        <div class="stat-card card p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-600 dark:text-gray-400 text-sm font-medium">Active Users</p>
+                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white mt-1" id="activeUsers">0</h3>
+                </div>
+                <div class="w-12 h-12 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center">
+                    <i class="fas fa-user-check text-green-600 dark:text-green-400 text-xl"></i>
+                </div>
+            </div>
+            <div class="mt-4">
+                <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                    <div id="activeUsersBar" class="bg-green-500 h-2 rounded-full" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="stat-card card p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-600 dark:text-gray-400 text-sm font-medium">Pending Invites</p>
+                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white mt-1" id="pendingUsers">0</h3>
+                </div>
+                <div class="w-12 h-12 bg-yellow-100 dark:bg-yellow-900 rounded-full flex items-center justify-center">
+                    <i class="fas fa-user-clock text-yellow-600 dark:text-yellow-400 text-xl"></i>
+                </div>
+            </div>
+            <div class="mt-4">
+                <button class="text-yellow-600 dark:text-yellow-400 text-sm font-medium hover:underline">
+                    View all pending
+                </button>
+            </div>
+        </div>
+
+        <div class="stat-card card p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-600 dark:text-gray-400 text-sm font-medium">Admin Users</p>
+                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white mt-1" id="adminUsers">0</h3>
+                </div>
+                <div class="w-12 h-12 bg-red-100 dark:bg-red-900 rounded-full flex items-center justify-center">
+                    <i class="fas fa-crown text-red-600 dark:text-red-400 text-xl"></i>
+                </div>
+            </div>
+            <div class="mt-4 flex items-center text-sm">
+                <span class="text-gray-500 dark:text-gray-400">Managing system access</span>
+            </div>
         </div>
     </div>
 
-    <!-- Stats -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <div class="card p-6 text-center">
-            <div class="text-2xl font-bold text-blue-600" id="totalUsers">-</div>
-            <div class="text-sm text-gray-600 dark:text-gray-400">Total Users</div>
-        </div>
-        <div class="card p-6 text-center">
-            <div class="text-2xl font-bold text-green-600" id="adminUsers">-</div>
-            <div class="text-sm text-gray-600 dark:text-gray-400">Admins</div>
-        </div>
-        <div class="card p-6 text-center">
-            <div class="text-2xl font-bold text-purple-600" id="activeUsers">-</div>
-            <div class="text-sm text-gray-600 dark:text-gray-400">Active Today</div>
-        </div>
-        <div class="card p-6 text-center">
-            <div class="text-2xl font-bold text-orange-600" id="newUsers">-</div>
-            <div class="text-sm text-gray-600 dark:text-gray-400">New This Week</div>
+    <!-- Filters and Search -->
+    <div class="card p-6 mb-6">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
+            <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
+                <div class="relative">
+                    <input type="text" id="searchUsers" placeholder="Search users..."
+                           class="w-full lg:w-64 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white">
+                    <i class="fas fa-search absolute right-3 top-3 text-gray-400"></i>
+                </div>
+
+                <select id="roleFilter" class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white">
+                    <option value="">All Roles</option>
+                    <option value="admin">Administrator</option>
+                    <option value="manager">Manager</option>
+                    <option value="analyst">Analyst</option>
+                    <option value="viewer">Viewer</option>
+                </select>
+
+                <select id="statusFilter" class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white">
+                    <option value="">All Status</option>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                    <option value="pending">Pending</option>
+                </select>
+            </div>
+
+            <div class="flex items-center space-x-4">
+                <button id="exportUsers" class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 flex items-center space-x-2">
+                    <i class="fas fa-download"></i>
+                    <span>Export</span>
+                </button>
+
+                <button id="bulkActions" class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg flex items-center space-x-2">
+                    <i class="fas fa-cog"></i>
+                    <span>Bulk Actions</span>
+                </button>
+            </div>
         </div>
     </div>
 
     <!-- Users Table -->
     <div class="card p-6">
-        <div class="flex justify-between items-center mb-6">
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">All Users</h3>
-            <div class="flex items-center space-x-4">
-                <div class="relative">
-                    <input type="text" id="searchUsers" placeholder="Search users..."
-                           class="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white w-64">
-                    <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
-                </div>
-            </div>
-        </div>
-
         <div class="overflow-x-auto">
             <table class="w-full">
                 <thead>
                     <tr class="border-b border-gray-200 dark:border-gray-700">
-                        <th class="text-left py-3 px-4 font-medium text-gray-900 dark:text-white">User</th>
-                        <th class="text-left py-3 px-4 font-medium text-gray-900 dark:text-white">Role</th>
-                        <th class="text-left py-3 px-4 font-medium text-gray-900 dark:text-white">Status</th>
-                        <th class="text-left py-3 px-4 font-medium text-gray-900 dark:text-white">Last Active</th>
-                        <th class="text-left py-3 px-4 font-medium text-gray-900 dark:text-white">Actions</th>
+                        <th class="pb-3 text-left">
+                            <input type="checkbox" id="selectAll" class="rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500">
+                        </th>
+                        <th class="pb-3 text-left text-sm font-medium text-gray-500 dark:text-gray-400">User</th>
+                        <th class="pb-3 text-left text-sm font-medium text-gray-500 dark:text-gray-400">Role</th>
+                        <th class="pb-3 text-left text-sm font-medium text-gray-500 dark:text-gray-400">Status</th>
+                        <th class="pb-3 text-left text-sm font-medium text-gray-500 dark:text-gray-400">Last Active</th>
+                        <th class="pb-3 text-left text-sm font-medium text-gray-500 dark:text-gray-400">Joined</th>
+                        <th class="pb-3 text-left text-sm font-medium text-gray-500 dark:text-gray-400">Actions</th>
                     </tr>
                 </thead>
-                <tbody id="usersTableBody">
-                    <!-- Users will be loaded here -->
+                <tbody id="usersTableBody" class="divide-y divide-gray-200 dark:divide-gray-700">
+                    <!-- Users will be populated here -->
                 </tbody>
             </table>
         </div>
 
-        <div id="usersLoading" class="text-center py-8">
-            <div class="loading-spinner mx-auto mb-4"></div>
-            <p class="text-gray-600 dark:text-gray-400">Loading users...</p>
+        <!-- Pagination -->
+        <div class="flex items-center justify-between mt-6">
+            <div class="text-sm text-gray-500 dark:text-gray-400">
+                Showing <span id="showingFrom">1</span> to <span id="showingTo">10</span> of <span id="totalItems">0</span> users
+            </div>
+            <div class="flex space-x-2">
+                <button id="prevPage" class="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <div id="paginationNumbers" class="flex space-x-1">
+                    <!-- Pagination numbers will be populated here -->
+                </div>
+                <button id="nextPage" class="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
         </div>
     </div>
 </div>
 
-<!-- Create User Modal -->
-<div id="userModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
-    <div class="bg-white dark:bg-gray-800 rounded-lg w-full max-w-md">
-        <div class="p-6 border-b border-gray-200 dark:border-gray-700">
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Add New User</h3>
+<!-- Add/Edit User Modal -->
+<div id="userModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white dark:bg-gray-800">
+        <div class="mt-3">
+            <div class="flex justify-between items-center pb-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 class="text-xl font-bold text-gray-900 dark:text-white" id="modalTitle">Add New User</h3>
+                <button id="closeModal" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+
+            <form id="userForm" class="space-y-4 mt-4">
+                <input type="hidden" id="userId">
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="fullName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Full Name *
+                        </label>
+                        <input type="text" id="fullName" required
+                               class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white">
+                    </div>
+
+                    <div>
+                        <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Email Address *
+                        </label>
+                        <input type="email" id="email" required
+                               class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="role" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Role *
+                        </label>
+                        <select id="role" required
+                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white">
+                            <option value="">Select Role</option>
+                            <option value="admin">Administrator</option>
+                            <option value="manager">Manager</option>
+                            <option value="analyst">Analyst</option>
+                            <option value="viewer">Viewer</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="status" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Status *
+                        </label>
+                        <select id="status" required
+                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white">
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                            <option value="pending">Pending</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="passwordSection">
+                    <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Password *
+                    </label>
+                    <input type="password" id="password"
+                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                           placeholder="Leave blank to keep current password">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Permissions
+                    </label>
+                    <div class="space-y-2">
+                        <div class="flex items-center">
+                            <input type="checkbox" id="permissionDashboard" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                            <label for="permissionDashboard" class="ml-2 text-sm text-gray-700 dark:text-gray-300">Dashboard Access</label>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" id="permissionAnalytics" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                            <label for="permissionAnalytics" class="ml-2 text-sm text-gray-700 dark:text-gray-300">Analytics Access</label>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" id="permissionReports" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                            <label for="permissionReports" class="ml-2 text-sm text-gray-700 dark:text-gray-300">Report Generation</label>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" id="permissionSettings" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                            <label for="permissionSettings" class="ml-2 text-sm text-gray-700 dark:text-gray-300">System Settings</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <button type="button" id="cancelModal" class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg flex items-center space-x-2">
+                        <i class="fas fa-save"></i>
+                        <span id="submitButtonText">Add User</span>
+                    </button>
+                </div>
+            </form>
         </div>
+    </div>
+</div>
 
-        <form id="userForm" class="p-6 space-y-4">
-            <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Full Name *</label>
-                <input type="text" id="full_name" required
-                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+<!-- Delete Confirmation Modal -->
+<div id="deleteModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800">
+        <div class="mt-3 text-center">
+            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 dark:bg-red-900">
+                <i class="fas fa-exclamation-triangle text-red-600 dark:text-red-400 text-xl"></i>
             </div>
-
-            <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email *</label>
-                <input type="email" id="email" required
-                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+            <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-white mt-3">Delete User</h3>
+            <div class="mt-2 px-7 py-3">
+                <p class="text-sm text-gray-500 dark:text-gray-400">
+                    Are you sure you want to delete <span id="deleteUserName" class="font-semibold">this user</span>? This action cannot be undone.
+                </p>
             </div>
-
-            <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Password *</label>
-                <input type="password" id="password" required minlength="6"
-                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+            <div class="items-center px-4 py-3">
+                <button id="confirmDelete" class="px-4 py-2 bg-red-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-300">
+                    Delete User
+                </button>
+                <button id="cancelDelete" class="mt-2 px-4 py-2 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-base font-medium rounded-md w-full shadow-sm border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600">
+                    Cancel
+                </button>
             </div>
-
-            <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Role *</label>
-                <select id="role" required
-                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
-                    <option value="viewer">Viewer</option>
-                    <option value="analyst">Analyst</option>
-                    <option value="manager">Manager</option>
-                    <option value="admin">Admin</option>
-                </select>
-            </div>
-        </form>
-
-        <div class="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end space-x-3">
-            <button onclick="closeUserModal()" class="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors">
-                Cancel
-            </button>
-            <button onclick="saveUser()" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
-                Create User
-            </button>
         </div>
     </div>
 </div>
@@ -126,323 +305,508 @@
 
 {% block scripts %}
 <script>
-    let users = [];
+    // User Management Data and Functions
+    const UserManager = {
+        currentPage: 1,
+        itemsPerPage: 10,
+        totalUsers: 0,
+        users: [],
+        filteredUsers: [],
+        selectedUsers: new Set(),
+        userToDelete: null,
 
-    document.addEventListener('DOMContentLoaded', function() {
-        console.log('User management page loaded');
-        loadUsers();
+        // Initialize user management
+        init() {
+            this.loadUsers();
+            this.setupEventListeners();
+            this.updateStats();
+        },
 
-        // Search functionality
-        document.getElementById('searchUsers').addEventListener('input', function(e) {
-            DashboardUtils.debounce(loadUsers, 300)();
-        });
-    });
+        // Load users from localStorage or use demo data
+        loadUsers() {
+            const savedUsers = localStorage.getItem('dashboardUsers');
 
-    function loadUsers() {
-        const search = document.getElementById('searchUsers').value;
-        const loadingElement = document.getElementById('usersLoading');
-        const tableBody = document.getElementById('usersTableBody');
+            // Get current user from localStorage (from signup)
+            const currentUser = JSON.parse(localStorage.getItem('demoUser') || localStorage.getItem('user') || '{}');
 
-        loadingElement.classList.remove('hidden');
-        tableBody.innerHTML = '';
+            if (savedUsers) {
+                this.users = JSON.parse(savedUsers);
+            } else {
+                // Demo data
+                this.users = [
+                    {
+                        id: 1,
+                        full_name: 'John Doe',
+                        email: 'john.doe@company.com',
+                        role: 'admin',
+                        status: 'active',
+                        last_active: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+                        created_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+                        avatar: 'JD'
+                    },
+                    {
+                        id: 2,
+                        full_name: 'Jane Smith',
+                        email: 'jane.smith@company.com',
+                        role: 'manager',
+                        status: 'active',
+                        last_active: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
+                        created_at: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000).toISOString(),
+                        avatar: 'JS'
+                    },
+                    {
+                        id: 3,
+                        full_name: 'Mike Johnson',
+                        email: 'mike.johnson@company.com',
+                        role: 'analyst',
+                        status: 'active',
+                        last_active: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+                        created_at: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
+                        avatar: 'MJ'
+                    },
+                    {
+                        id: 4,
+                        full_name: 'Sarah Wilson',
+                        email: 'sarah.wilson@company.com',
+                        role: 'viewer',
+                        status: 'active',
+                        last_active: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+                        created_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+                        avatar: 'SW'
+                    },
+                    {
+                        id: 5,
+                        full_name: 'Alex Brown',
+                        email: 'alex.brown@company.com',
+                        role: 'analyst',
+                        status: 'pending',
+                        last_active: null,
+                        created_at: new Date().toISOString(),
+                        avatar: 'AB'
+                    }
+                ];
 
-        // Simulate API delay
-        setTimeout(() => {
-            try {
-                // Generate sample users data
-                const sampleUsers = generateSampleUsers();
-
-                // Load from localStorage if available, otherwise use sample data
-                const savedUsers = JSON.parse(localStorage.getItem('dashboardUsers') || '[]');
-                if (savedUsers.length > 0) {
-                    users = savedUsers;
-                } else {
-                    users = sampleUsers;
-                    localStorage.setItem('dashboardUsers', JSON.stringify(users));
+                // Add current user if they exist and aren't already in the list
+                if (currentUser.full_name && !this.users.some(user => user.email === currentUser.email)) {
+                    this.users.push({
+                        id: Date.now(),
+                        full_name: currentUser.full_name,
+                        email: currentUser.email,
+                        role: currentUser.role || 'viewer',
+                        status: 'active',
+                        last_active: new Date().toISOString(),
+                        created_at: currentUser.created_at || new Date().toISOString(),
+                        avatar: currentUser.full_name.split(' ').map(n => n[0]).join('').toUpperCase()
+                    });
                 }
 
-                // Apply search filter
-                let filteredUsers = users;
-                if (search) {
-                    const searchLower = search.toLowerCase();
-                    filteredUsers = users.filter(user =>
-                        user.full_name.toLowerCase().includes(searchLower) ||
-                        user.email.toLowerCase().includes(searchLower) ||
-                        user.role.toLowerCase().includes(searchLower)
-                    );
-                }
-
-                renderUsersTable(filteredUsers);
-                updateUserStats(filteredUsers);
-
-            } catch (error) {
-                console.error('Error loading users:', error);
-                window.toast.show('Failed to load users', 'error');
-                renderUsersTable([]);
-                updateUserStats([]);
-            } finally {
-                loadingElement.classList.add('hidden');
+                this.saveUsers();
             }
-        }, 1000);
-    }
 
-    function generateSampleUsers() {
-        const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
-
-        return [
-            {
-                id: 1,
-                full_name: currentUser.full_name || 'Admin User',
-                email: currentUser.email || 'admin@company.com',
-                role: 'admin',
-                last_login: new Date().toISOString(),
-                created_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-                status: 'active'
-            },
-            {
-                id: 2,
-                full_name: 'Sarah Johnson',
-                email: 'sarah.johnson@company.com',
-                role: 'manager',
-                last_login: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-                created_at: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
-                status: 'active'
-            },
-            {
-                id: 3,
-                full_name: 'Mike Chen',
-                email: 'mike.chen@company.com',
-                role: 'analyst',
-                last_login: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
-                created_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
-                status: 'active'
-            },
-            {
-                id: 4,
-                full_name: 'Emily Davis',
-                email: 'emily.davis@company.com',
-                role: 'viewer',
-                last_login: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-                created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-                status: 'active'
-            },
-            {
-                id: 5,
-                full_name: 'Alex Rodriguez',
-                email: 'alex.rodriguez@company.com',
-                role: 'analyst',
-                last_login: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-                created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-                status: 'active'
-            },
-            {
-                id: 6,
-                full_name: 'Lisa Wang',
-                email: 'lisa.wang@company.com',
-                role: 'viewer',
-                last_login: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
-                created_at: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString(),
-                status: 'active'
+            // Ensure current user is always in the list (if they exist)
+            if (currentUser.full_name && !this.users.some(user => user.email === currentUser.email)) {
+                this.users.push({
+                    id: Date.now(),
+                    full_name: currentUser.full_name,
+                    email: currentUser.email,
+                    role: currentUser.role || 'viewer',
+                    status: 'active',
+                    last_active: new Date().toISOString(),
+                    created_at: currentUser.created_at || new Date().toISOString(),
+                    avatar: currentUser.full_name.split(' ').map(n => n[0]).join('').toUpperCase()
+                });
+                this.saveUsers();
             }
-        ];
-    }
 
-    function renderUsersTable(users) {
-        const container = document.getElementById('usersTableBody');
+            this.filteredUsers = [...this.users];
+            this.totalUsers = this.users.length;
+            this.renderUsers();
+            this.updateStats();
+        },
 
-        if (users.length === 0) {
-            container.innerHTML = `
-                <tr>
-                    <td colspan="5" class="text-center py-8 text-gray-600 dark:text-gray-400">
-                        No users found
+        // Save users to localStorage
+        saveUsers() {
+            localStorage.setItem('dashboardUsers', JSON.stringify(this.users));
+        },
+
+        // Setup event listeners
+        setupEventListeners() {
+            // Add user button
+            document.getElementById('addUserBtn').addEventListener('click', () => this.openAddModal());
+
+            // Modal controls
+            document.getElementById('closeModal').addEventListener('click', () => this.closeModal());
+            document.getElementById('cancelModal').addEventListener('click', () => this.closeModal());
+
+            // Form submission
+            document.getElementById('userForm').addEventListener('submit', (e) => this.handleFormSubmit(e));
+
+            // Delete modal
+            document.getElementById('cancelDelete').addEventListener('click', () => this.closeDeleteModal());
+            document.getElementById('confirmDelete').addEventListener('click', () => this.confirmDelete());
+
+            // Search and filters
+            document.getElementById('searchUsers').addEventListener('input',
+                DashboardUtils.debounce(() => this.filterUsers(), 300));
+            document.getElementById('roleFilter').addEventListener('change', () => this.filterUsers());
+            document.getElementById('statusFilter').addEventListener('change', () => this.filterUsers());
+
+            // Pagination
+            document.getElementById('prevPage').addEventListener('click', () => this.previousPage());
+            document.getElementById('nextPage').addEventListener('click', () => this.nextPage());
+
+            // Select all checkbox
+            document.getElementById('selectAll').addEventListener('change', (e) => this.toggleSelectAll(e.target.checked));
+
+            // Export button
+            document.getElementById('exportUsers').addEventListener('click', () => this.exportUsers());
+        },
+
+        // Filter users based on search and filters
+        filterUsers() {
+            const searchTerm = document.getElementById('searchUsers').value.toLowerCase();
+            const roleFilter = document.getElementById('roleFilter').value;
+            const statusFilter = document.getElementById('statusFilter').value;
+
+            this.filteredUsers = this.users.filter(user => {
+                const matchesSearch = user.full_name.toLowerCase().includes(searchTerm) ||
+                                    user.email.toLowerCase().includes(searchTerm);
+                const matchesRole = !roleFilter || user.role === roleFilter;
+                const matchesStatus = !statusFilter || user.status === statusFilter;
+
+                return matchesSearch && matchesRole && matchesStatus;
+            });
+
+            this.currentPage = 1;
+            this.renderUsers();
+        },
+
+        // Render users table
+        renderUsers() {
+            const tbody = document.getElementById('usersTableBody');
+            const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+            const endIndex = startIndex + this.itemsPerPage;
+            const usersToShow = this.filteredUsers.slice(startIndex, endIndex);
+
+            tbody.innerHTML = usersToShow.map(user => this.renderUserRow(user)).join('');
+
+            this.updatePagination();
+            this.updateShowingInfo();
+        },
+
+        // Render a single user row
+        renderUserRow(user) {
+            const roleBadges = {
+                admin: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+                manager: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
+                analyst: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+                viewer: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+            };
+
+            const statusBadges = {
+                active: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+                inactive: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200',
+                pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+            };
+
+            const roleLabels = {
+                admin: 'Administrator',
+                manager: 'Manager',
+                analyst: 'Analyst',
+                viewer: 'Viewer'
+            };
+
+            return `
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-800">
+                    <td class="py-4">
+                        <input type="checkbox" value="${user.id}" class="user-checkbox rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                    </td>
+                    <td class="py-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                                ${user.avatar}
+                            </div>
+                            <div>
+                                <div class="font-medium text-gray-900 dark:text-white">${user.full_name}</div>
+                                <div class="text-gray-500 dark:text-gray-400 text-sm">${user.email}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="py-4">
+                        <span class="px-2 py-1 text-xs font-medium rounded-full ${roleBadges[user.role]}">
+                            ${roleLabels[user.role]}
+                        </span>
+                    </td>
+                    <td class="py-4">
+                        <span class="px-2 py-1 text-xs font-medium rounded-full ${statusBadges[user.status]}">
+                            ${user.status.charAt(0).toUpperCase() + user.status.slice(1)}
+                        </span>
+                    </td>
+                    <td class="py-4 text-sm text-gray-500 dark:text-gray-400">
+                        ${user.last_active ? window.DateUtils.getRelativeTime(user.last_active) : 'Never'}
+                    </td>
+                    <td class="py-4 text-sm text-gray-500 dark:text-gray-400">
+                        ${new Date(user.created_at).toLocaleDateString()}
+                    </td>
+                    <td class="py-4">
+                        <div class="flex space-x-2">
+                            <button class="edit-user text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300" data-id="${user.id}">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="delete-user text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300" data-id="${user.id}">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                            <button class="text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-300" data-id="${user.id}">
+                                <i class="fas fa-ellipsis-v"></i>
+                            </button>
+                        </div>
                     </td>
                 </tr>
             `;
-            return;
-        }
+        },
 
-        container.innerHTML = users.map(user => `
-            <tr class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800">
-                <td class="py-4 px-4">
-                    <div class="flex items-center space-x-3">
-                        <div class="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold">
-                            ${user.full_name.split(' ').map(n => n[0]).join('')}
-                        </div>
-                        <div>
-                            <div class="font-medium text-gray-900 dark:text-white">${user.full_name}</div>
-                            <div class="text-sm text-gray-600 dark:text-gray-400">${user.email}</div>
-                        </div>
-                    </div>
-                </td>
-                <td class="py-4 px-4">
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        user.role === 'admin' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' :
-                        user.role === 'manager' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' :
-                        user.role === 'analyst' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' :
-                        'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300'
-                    }">
-                        ${user.role}
-                    </span>
-                </td>
-                <td class="py-4 px-4">
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        user.status === 'active' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' :
-                        'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300'
-                    }">
-                        <i class="fas fa-circle mr-1 text-xs"></i>
-                        ${user.status === 'active' ? 'Active' : 'Inactive'}
-                    </span>
-                </td>
-                <td class="py-4 px-4 text-sm text-gray-600 dark:text-gray-400">
-                    ${user.last_login ? window.DateUtils.getRelativeTime(user.last_login) : 'Never'}
-                </td>
-                <td class="py-4 px-4">
-                    <div class="flex items-center space-x-2">
-                        <button onclick="editUserRole(${user.id})" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors" title="Edit Role">
-                            <i class="fas fa-edit"></i>
+        // Update pagination controls
+        updatePagination() {
+            const totalPages = Math.ceil(this.filteredUsers.length / this.itemsPerPage);
+            const paginationContainer = document.getElementById('paginationNumbers');
+            const prevButton = document.getElementById('prevPage');
+            const nextButton = document.getElementById('nextPage');
+
+            prevButton.disabled = this.currentPage === 1;
+            nextButton.disabled = this.currentPage === totalPages || totalPages === 0;
+
+            let paginationHTML = '';
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === 1 || i === totalPages || (i >= this.currentPage - 1 && i <= this.currentPage + 1)) {
+                    paginationHTML += `
+                        <button class="page-btn px-3 py-1 rounded-lg ${i === this.currentPage ? 'bg-blue-500 text-white' : 'border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'}">
+                            ${i}
                         </button>
-                        ${user.role !== 'admin' ? `
-                            <button onclick="deleteUser(${user.id})" class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 transition-colors" title="Delete User">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        ` : '<span class="text-gray-400 cursor-not-allowed" title="Cannot delete admin"><i class="fas fa-trash"></i></span>'}
-                    </div>
-                </td>
-            </tr>
-        `).join('');
-    }
+                    `;
+                } else if (i === this.currentPage - 2 || i === this.currentPage + 2) {
+                    paginationHTML += `<span class="px-2">...</span>`;
+                }
+            }
 
-    function updateUserStats(users) {
-        const totalUsers = users.length;
-        const adminUsers = users.filter(user => user.role === 'admin').length;
-        const activeToday = users.filter(user =>
-            user.last_login && new Date(user.last_login) > new Date(Date.now() - 24 * 60 * 60 * 1000)
-        ).length;
-        const newThisWeek = users.filter(user =>
-            user.created_at && new Date(user.created_at) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-        ).length;
+            paginationContainer.innerHTML = paginationHTML;
 
-        document.getElementById('totalUsers').textContent = totalUsers;
-        document.getElementById('adminUsers').textContent = adminUsers;
-        document.getElementById('activeUsers').textContent = activeToday;
-        document.getElementById('newUsers').textContent = newThisWeek;
-    }
+            // Add event listeners to page buttons
+            document.querySelectorAll('.page-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    this.currentPage = parseInt(e.target.textContent);
+                    this.renderUsers();
+                });
+            });
+        },
 
-    function openCreateUserModal() {
-        document.getElementById('userForm').reset();
-        document.getElementById('userModal').classList.remove('hidden');
-    }
+        // Update showing information
+        updateShowingInfo() {
+            const start = (this.currentPage - 1) * this.itemsPerPage + 1;
+            const end = Math.min(this.currentPage * this.itemsPerPage, this.filteredUsers.length);
+            const total = this.filteredUsers.length;
 
-    function closeUserModal() {
-        document.getElementById('userModal').classList.add('hidden');
-    }
+            document.getElementById('showingFrom').textContent = start;
+            document.getElementById('showingTo').textContent = end;
+            document.getElementById('totalItems').textContent = total;
+        },
 
-    function saveUser() {
-        const fullName = document.getElementById('full_name').value;
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
-        const role = document.getElementById('role').value;
+        // Update statistics
+        updateStats() {
+            const totalUsers = this.users.length;
+            const activeUsers = this.users.filter(u => u.status === 'active').length;
+            const pendingUsers = this.users.filter(u => u.status === 'pending').length;
+            const adminUsers = this.users.filter(u => u.role === 'admin').length;
 
-        if (!fullName || !email || !password) {
-            window.toast.show('Please fill in all required fields', 'error');
-            return;
-        }
+            document.getElementById('totalUsers').textContent = totalUsers;
+            document.getElementById('activeUsers').textContent = activeUsers;
+            document.getElementById('pendingUsers').textContent = pendingUsers;
+            document.getElementById('adminUsers').textContent = adminUsers;
 
-        if (password.length < 6) {
-            window.toast.show('Password must be at least 6 characters', 'error');
-            return;
-        }
+            // Update active users bar
+            const activePercentage = totalUsers > 0 ? (activeUsers / totalUsers) * 100 : 0;
+            document.getElementById('activeUsersBar').style.width = `${activePercentage}%`;
 
-        // Check if email already exists
-        const existingUser = users.find(user => user.email === email);
-        if (existingUser) {
-            window.toast.show('User with this email already exists', 'error');
-            return;
-        }
+            // Update growth (demo data)
+            document.getElementById('userGrowth').textContent = '12%';
+        },
 
-        // Create new user
-        const newUser = {
-            id: Date.now(),
-            full_name: fullName,
-            email: email,
-            role: role,
-            last_login: null,
-            created_at: new Date().toISOString(),
-            status: 'active'
-        };
+        // Open add user modal
+        openAddModal() {
+            document.getElementById('modalTitle').textContent = 'Add New User';
+            document.getElementById('submitButtonText').textContent = 'Add User';
+            document.getElementById('passwordSection').style.display = 'block';
+            document.getElementById('userForm').reset();
+            document.getElementById('userId').value = '';
+            document.getElementById('userModal').classList.remove('hidden');
+        },
 
-        // Add to users array and save to localStorage
-        users.push(newUser);
-        localStorage.setItem('dashboardUsers', JSON.stringify(users));
+        // Open edit user modal
+        openEditModal(userId) {
+            const user = this.users.find(u => u.id === userId);
+            if (!user) return;
 
-        window.toast.show('User created successfully', 'success');
-        closeUserModal();
-        loadUsers();
-    }
+            document.getElementById('modalTitle').textContent = 'Edit User';
+            document.getElementById('submitButtonText').textContent = 'Update User';
+            document.getElementById('passwordSection').style.display = 'none';
 
-    function editUserRole(userId) {
-        const user = users.find(u => u.id === userId);
-        if (!user) return;
+            document.getElementById('userId').value = user.id;
+            document.getElementById('fullName').value = user.full_name;
+            document.getElementById('email').value = user.email;
+            document.getElementById('role').value = user.role;
+            document.getElementById('status').value = user.status;
 
-        const newRole = prompt('Enter new role (admin, manager, analyst, viewer):', user.role);
+            document.getElementById('userModal').classList.remove('hidden');
+        },
 
-        if (newRole && ['admin', 'manager', 'analyst', 'viewer'].includes(newRole)) {
-            // Update user role
-            const userIndex = users.findIndex(u => u.id === userId);
-            if (userIndex !== -1) {
-                users[userIndex].role = newRole;
-                localStorage.setItem('dashboardUsers', JSON.stringify(users));
-                window.toast.show('User role updated successfully', 'success');
-                loadUsers();
+        // Close modal
+        closeModal() {
+            document.getElementById('userModal').classList.add('hidden');
+        },
+
+        // Handle form submission
+        handleFormSubmit(e) {
+            e.preventDefault();
+
+            const userId = document.getElementById('userId').value;
+            const fullName = document.getElementById('fullName').value;
+            const email = document.getElementById('email').value;
+            const role = document.getElementById('role').value;
+            const status = document.getElementById('status').value;
+
+            if (userId) {
+                // Update existing user
+                const userIndex = this.users.findIndex(u => u.id === parseInt(userId));
+                if (userIndex !== -1) {
+                    this.users[userIndex] = {
+                        ...this.users[userIndex],
+                        full_name: fullName,
+                        email: email,
+                        role: role,
+                        status: status
+                    };
+
+                    toast.show('User updated successfully', 'success');
+                }
+            } else {
+                // Add new user
+                const newUser = {
+                    id: Date.now(),
+                    full_name: fullName,
+                    email: email,
+                    role: role,
+                    status: status,
+                    last_active: status === 'active' ? new Date().toISOString() : null,
+                    created_at: new Date().toISOString(),
+                    avatar: fullName.split(' ').map(n => n[0]).join('').toUpperCase()
+                };
+
+                this.users.push(newUser);
+                toast.show('User added successfully', 'success');
+            }
+
+            this.saveUsers();
+            this.filterUsers();
+            this.updateStats();
+            this.closeModal();
+        },
+
+        // Open delete confirmation modal
+        openDeleteModal(userId) {
+            const user = this.users.find(u => u.id === userId);
+            if (!user) return;
+
+            this.userToDelete = userId;
+            document.getElementById('deleteUserName').textContent = user.full_name;
+            document.getElementById('deleteModal').classList.remove('hidden');
+        },
+
+        // Close delete modal
+        closeDeleteModal() {
+            this.userToDelete = null;
+            document.getElementById('deleteModal').classList.add('hidden');
+        },
+
+        // Confirm user deletion
+        confirmDelete() {
+            if (this.userToDelete) {
+                this.users = this.users.filter(u => u.id !== this.userToDelete);
+                this.saveUsers();
+                this.filterUsers();
+                this.updateStats();
+                toast.show('User deleted successfully', 'success');
+            }
+            this.closeDeleteModal();
+        },
+
+        // Toggle select all users
+        toggleSelectAll(checked) {
+            const checkboxes = document.querySelectorAll('.user-checkbox');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = checked;
+                if (checked) {
+                    this.selectedUsers.add(checkbox.value);
+                } else {
+                    this.selectedUsers.delete(checkbox.value);
+                }
+            });
+        },
+
+        // Export users
+        exportUsers() {
+            // In a real app, this would generate a CSV or Excel file
+            toast.show('Exporting user data...', 'info');
+            setTimeout(() => {
+                toast.show('User data exported successfully', 'success');
+            }, 1500);
+        },
+
+        // Navigate to previous page
+        previousPage() {
+            if (this.currentPage > 1) {
+                this.currentPage--;
+                this.renderUsers();
+            }
+        },
+
+        // Navigate to next page
+        nextPage() {
+            const totalPages = Math.ceil(this.filteredUsers.length / this.itemsPerPage);
+            if (this.currentPage < totalPages) {
+                this.currentPage++;
+                this.renderUsers();
             }
         }
-    }
+    };
 
-    function deleteUser(userId) {
-        const user = users.find(u => u.id === userId);
-        if (!user) return;
+    // Initialize user management when DOM is loaded
+    document.addEventListener('DOMContentLoaded', function() {
+        UserManager.init();
 
-        if (user.role === 'admin') {
-            window.toast.show('Cannot delete admin users', 'error');
-            return;
-        }
+        // Event delegation for dynamic elements
+        document.addEventListener('click', function(e) {
+            // Edit user button
+            if (e.target.closest('.edit-user')) {
+                const userId = parseInt(e.target.closest('.edit-user').getAttribute('data-id'));
+                UserManager.openEditModal(userId);
+            }
 
-        if (!confirm(`Are you sure you want to delete ${user.full_name}? This action cannot be undone.`)) {
-            return;
-        }
+            // Delete user button
+            if (e.target.closest('.delete-user')) {
+                const userId = parseInt(e.target.closest('.delete-user').getAttribute('data-id'));
+                UserManager.openDeleteModal(userId);
+            }
 
-        // Remove user from array
-        users = users.filter(u => u.id !== userId);
-        localStorage.setItem('dashboardUsers', JSON.stringify(users));
-
-        window.toast.show('User deleted successfully', 'success');
-        loadUsers();
-    }
+            // User checkbox
+            if (e.target.classList.contains('user-checkbox')) {
+                const userId = e.target.value;
+                if (e.target.checked) {
+                    UserManager.selectedUsers.add(userId);
+                } else {
+                    UserManager.selectedUsers.delete(userId);
+                    document.getElementById('selectAll').checked = false;
+                }
+            }
+        });
+    });
 </script>
-
-<style>
-.loading-spinner {
-    border: 3px solid #f3f4f6;
-    border-top: 3px solid #3b82f6;
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-.card {
-    background: white;
-    border-radius: 0.5rem;
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-}
-
-.dark .card {
-    background: #1f2937;
-}
-</style>
 {% endblock %}
