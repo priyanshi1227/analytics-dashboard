@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 import csv
 import io
 from enum import Enum
+import asyncio
 import random
 import asyncpg
 from google.analytics.data_v1beta import BetaAnalyticsDataClient
@@ -384,6 +385,10 @@ class PostgreSQLManager:
                 logger.error(f"Fetch one error: {e}")
                 return None
 
+    async def get_user_by_email(self, email: str) -> Optional[Dict[str, Any]]:
+        """Get user by email"""
+        return await self.fetch_one("SELECT * FROM users WHERE email = $1", email)
+
     async def fetch_all(self, query: str, *params) -> List[Dict[str, Any]]:
         """Fetch all rows"""
         conn = await self._get_connection()
@@ -395,30 +400,58 @@ class PostgreSQLManager:
                 logger.error(f"Fetch all error: {e}")
                 return []
 
+    async def get_user_by_email(self, email: str) -> Optional[Dict[str, Any]]:
+        """Get user by email"""
+        return await self.fetch_one("SELECT * FROM users WHERE email = $1", email)
+
     async def insert(self, table: str, data: Dict[str, Any]) -> int:
-        """Insert data and return ID"""
-        processed_data = {}
-        for key, value in data.items():
-            if isinstance(value, str) and 'created_at' in key or 'updated_at' in key or 'timestamp' in key:
-                try:
-                    processed_data[key] = datetime.fromisoformat(value.replace('Z', '+00:00'))
-                except:
+        """Insert data and return ID - FIXED VERSION"""
+        try:
+            print(f"🔄 INSERT into {table}: {list(data.keys())}")
+
+            # Process data to ensure proper types
+            processed_data = {}
+            for key, value in data.items():
+                if isinstance(value, datetime):
                     processed_data[key] = value
-            else:
-                processed_data[key] = value
+                elif isinstance(value, str) and ('created_at' in key or 'updated_at' in key or 'timestamp' in key):
+                    try:
+                        # Convert string to datetime
+                        processed_data[key] = datetime.fromisoformat(value.replace('Z', '+00:00'))
+                    except:
+                        processed_data[key] = value
+                else:
+                    processed_data[key] = value
 
-        columns = ', '.join(processed_data.keys())
-        placeholders = ', '.join([f'${i + 1}' for i in range(len(processed_data))])
-        query = f"INSERT INTO {table} ({columns}) VALUES ({placeholders}) RETURNING id"
+            # Build query
+            columns = ', '.join(processed_data.keys())
+            placeholders = ', '.join([f'${i + 1}' for i in range(len(processed_data))])
+            query = f"INSERT INTO {table} ({columns}) VALUES ({placeholders}) RETURNING id"
 
-        conn = await self._get_connection()
-        async with conn.acquire() as connection:
-            try:
-                result = await connection.fetchrow(query, *processed_data.values())
-                return result['id']
-            except Exception as e:
-                logger.error(f"Insert error: {e}")
-                raise
+            print(f"📝 SQL: {query}")
+            print(f"📦 Data: {list(processed_data.values())}")
+
+            # Get connection and execute
+            conn = await self._get_connection()
+            async with conn.acquire() as connection:
+                try:
+                    result = await connection.fetchrow(query, *processed_data.values())
+                    if result and 'id' in result:
+                        inserted_id = result['id']
+                        print(f"✅ INSERT successful, ID: {inserted_id}")
+                        return inserted_id
+                    else:
+                        raise Exception("No ID returned from INSERT")
+                except Exception as e:
+                    print(f"❌ INSERT query failed: {e}")
+                    # Print the exact error
+                    import traceback
+                    traceback.print_exc()
+                    raise
+
+        except Exception as e:
+            print(f"❌ PostgreSQLManager.insert failed: {e}")
+            raise
 
     async def update(self, table: str, data: Dict[str, Any], where: str, *params) -> bool:
         """Update data"""
@@ -472,93 +505,100 @@ class DatabaseManager:
 
     def __init__(self):
         self.db = None
+        self.initialized = False
 
     async def initialize(self):
-        """Initialize the database connection"""
-        self.db = await PostgreSQLManager.get_instance()
-        await self._ensure_sample_data()
-
-    async def _ensure_sample_data(self):
-        """Ensure sample data exists for demonstration"""
+        """Initialize the database connection with proper error handling"""
         try:
-            # Check if we have sample ICE initiatives
-            ice_initiatives = await self.db.fetch_all("SELECT COUNT(*) as count FROM ice_initiatives")
-            if ice_initiatives[0]['count'] == 0:
-                await self._generate_sample_data()
+            print("🔄 Starting database initialization...")
+            self.db = await PostgreSQLManager.get_instance()
+            print("✅ PostgreSQL connection established")
+
+            # Force create tables and sample data
+            await self._force_initialize_database()
 
         except Exception as e:
-            logger.error(f"Sample data generation error: {e}")
+            print(f"❌ Database initialization failed: {e}")
+            import traceback
+            traceback.print_exc()
+            raise
 
-            async def _generate_sample_data(self):
-                """Generate sample data for demonstration"""
-                try:
-                    # Create default admin user if not exists - FIXED VERSION
-                    admin_user = await self.db.get_user_by_email('admin@example.com')
+    async def _force_initialize_database(self):
+        """Force initialize database with retry logic"""
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                print(f"🔄 Database setup attempt {attempt + 1}/{max_retries}")
+
+                # Ensure tables exist
+                await self.db._create_tables()
+                print("✅ Database tables verified")
+
+                # Check if we have any users
+                users_count_result = await self.db.fetch_one("SELECT COUNT(*) as count FROM users")
+                users_count = users_count_result['count'] if users_count_result else 0
+                print(f"📊 Current users in database: {users_count}")
+
+                if users_count == 0:
+                    print("🆕 No users found, generating sample data...")
+                    await self._generate_sample_data()
+                else:
+                    print("✅ Users already exist")
+
+                    # Verify admin user exists
+                    admin_user = await self.get_user_by_email('admin@example.com')
                     if not admin_user:
-                        hashed_password = AuthManager.hash_password('admin123')
-                        admin_data = {
-                            'email': 'admin@example.com',
-                            'password_hash': hashed_password,
-                            'full_name': 'System Administrator',
-                            'role': 'admin',
-                            'is_verified': True,
-                            'created_at': datetime.now().isoformat()
-                        }
-                        admin_id = await self.db.insert('users', admin_data)
-                        print(f"✅ Admin user created with ID: {admin_id}")
-                    else:
-                        print(f"✅ Admin user already exists: {admin_user['email']}")
+                        print("❌ Admin user missing, creating...")
+                        await self._create_admin_user()
 
-                    # Sample ICE initiatives
-                    sample_initiatives = [
-                        {
-                            'id': 'ice_001',
-                            'title': 'Implement Real-time Data Processing',
-                            'description': 'Set up real-time data pipelines for immediate analytics',
-                            'impact': 8.5,
-                            'confidence': 7.0,
-                            'ease': 6.0,
-                            'ice_score': 7.17,
-                            'priority': 'high',
-                            'status': 'in_progress',
-                            'assigned_to': 1,
-                            'created_by': 1,
-                            'created_at': datetime.now().isoformat(),
-                            'updated_at': datetime.now().isoformat(),
-                            'due_date': (datetime.now() + timedelta(days=14)).isoformat(),
-                            'tags': json.dumps(['infrastructure', 'real-time', 'analytics']),
-                            'metrics_affected': json.dumps(['dau', 'mau', 'response_time']),
-                            'estimated_effort_days': 10
-                        }
-                    ]
+                self.initialized = True
+                print("🎉 Database initialization completed successfully!")
+                return
 
-                    for initiative in sample_initiatives:
-                        await self.db.insert('ice_initiatives', initiative)
+            except Exception as e:
+                print(f"❌ Database setup attempt {attempt + 1} failed: {e}")
+                if attempt < max_retries - 1:
+                    await asyncio.sleep(2)
+                else:
+                    print("💥 All database setup attempts failed")
+                    raise
 
-                    # Sample analytics events
-                    for i in range(50):
-                        event_data = {
-                            'user_id': random.randint(1, 10),
-                            'event_type': random.choice(['page_view', 'button_click', 'form_submit', 'purchase']),
-                            'event_value': round(random.uniform(0, 100), 2),
-                            'timestamp': (datetime.now() - timedelta(days=random.randint(0, 29))).isoformat(),
-                            'properties': json.dumps({
-                                'page': random.choice(['/home', '/dashboard', '/pricing', '/features']),
-                                'browser': random.choice(['chrome', 'firefox', 'safari']),
-                                'country': random.choice(['US', 'UK', 'CA', 'AU', 'DE'])
-                            })
-                        }
-                        await self.db.insert('analytics_events', event_data)
+    async def _generate_sample_data(self):
+        """Generate sample data for demonstration"""
+        try:
+            print("🎯 Starting sample data generation...")
 
-                    logger.info("Sample data generated successfully")
+            # First create admin user
+            admin_id = await self._create_admin_user()
 
-                except Exception as e:
-                    logger.error(f"Error generating sample data: {e}")
+            # Create a few more sample users
+            sample_users = [
+                {
+                    'email': 'manager@example.com',
+                    'password_hash': AuthManager.hash_password('manager123'),
+                    'full_name': 'Project Manager',
+                    'role': 'manager',
+                    'is_verified': True,
+                    'created_at': datetime.now()
+                },
+                {
+                    'email': 'analyst@example.com',
+                    'password_hash': AuthManager.hash_password('analyst123'),
+                    'full_name': 'Data Analyst',
+                    'role': 'analyst',
+                    'is_verified': True,
+                    'created_at': datetime.now()
+                }
+            ]
+
+            for user_data in sample_users:
+                user_id = await self.create_user(user_data)
+                print(f"✅ Sample user created: {user_data['email']} (ID: {user_id})")
 
             # Sample ICE initiatives
             sample_initiatives = [
                 {
-                    'id': 'ice_001',
+                    'id': f"ice_{int(time.time() * 1000)}",
                     'title': 'Implement Real-time Data Processing',
                     'description': 'Set up real-time data pipelines for immediate analytics',
                     'impact': 8.5,
@@ -567,17 +607,17 @@ class DatabaseManager:
                     'ice_score': 7.17,
                     'priority': 'high',
                     'status': 'in_progress',
-                    'assigned_to': 1,
-                    'created_by': 1,
-                    'created_at': datetime.now().isoformat(),
-                    'updated_at': datetime.now().isoformat(),
-                    'due_date': (datetime.now() + timedelta(days=14)).isoformat(),
+                    'assigned_to': admin_id,
+                    'created_by': admin_id,
+                    'created_at': datetime.now(),
+                    'updated_at': datetime.now(),
+                    'due_date': (datetime.now() + timedelta(days=14)),
                     'tags': json.dumps(['infrastructure', 'real-time', 'analytics']),
                     'metrics_affected': json.dumps(['dau', 'mau', 'response_time']),
                     'estimated_effort_days': 10
                 },
                 {
-                    'id': 'ice_002',
+                    'id': f"ice_{int(time.time() * 1000) + 1}",
                     'title': 'Enhance AI Recommendation Engine',
                     'description': 'Improve machine learning models for better user recommendations',
                     'impact': 9.0,
@@ -587,10 +627,10 @@ class DatabaseManager:
                     'priority': 'high',
                     'status': 'pending',
                     'assigned_to': None,
-                    'created_by': 1,
-                    'created_at': datetime.now().isoformat(),
-                    'updated_at': datetime.now().isoformat(),
-                    'due_date': (datetime.now() + timedelta(days=21)).isoformat(),
+                    'created_by': admin_id,
+                    'created_at': datetime.now(),
+                    'updated_at': datetime.now(),
+                    'due_date': (datetime.now() + timedelta(days=21)),
                     'tags': json.dumps(['ai', 'machine-learning', 'recommendations']),
                     'metrics_affected': json.dumps(['conversion_rate', 'user_engagement']),
                     'estimated_effort_days': 15
@@ -599,14 +639,15 @@ class DatabaseManager:
 
             for initiative in sample_initiatives:
                 await self.db.insert('ice_initiatives', initiative)
+                print(f"✅ ICE initiative created: {initiative['title']}")
 
             # Sample analytics events
-            for i in range(100):
+            for i in range(50):
                 event_data = {
-                    'user_id': random.randint(1000, 1100),
+                    'user_id': random.randint(1, 3),
                     'event_type': random.choice(['page_view', 'button_click', 'form_submit', 'purchase']),
                     'event_value': round(random.uniform(0, 100), 2),
-                    'timestamp': (datetime.now() - timedelta(days=random.randint(0, 29))).isoformat(),
+                    'timestamp': (datetime.now() - timedelta(days=random.randint(0, 29))),
                     'properties': json.dumps({
                         'page': random.choice(['/home', '/dashboard', '/pricing', '/features']),
                         'browser': random.choice(['chrome', 'firefox', 'safari']),
@@ -615,55 +656,170 @@ class DatabaseManager:
                 }
                 await self.db.insert('analytics_events', event_data)
 
-            logger.info("Sample data generated successfully")
+            print("✅ Sample data generation completed successfully")
+            print("📋 Sample credentials:")
+            print("   👑 Admin: admin@example.com / admin123")
+            print("   👨‍💼 Manager: manager@example.com / manager123")
+            print("   📊 Analyst: analyst@example.com / analyst123")
 
         except Exception as e:
-            logger.error(f"Error generating sample data: {e}")
+            print(f"❌ Error generating sample data: {e}")
+            raise
+
+    async def _create_admin_user(self):
+        """Create admin user with guaranteed success"""
+        try:
+            # First check if admin already exists
+            existing_admin = await self.get_user_by_email('admin@example.com')
+            if existing_admin:
+                print("✅ Admin user already exists")
+                return existing_admin['id']
+
+            hashed_password = AuthManager.hash_password('admin123')
+            admin_data = {
+                'email': 'admin@example.com',
+                'password_hash': hashed_password,
+                'full_name': 'System Administrator',
+                'role': 'admin',
+                'is_verified': True,
+                'created_at': datetime.now()
+            }
+
+            print("🔄 Creating admin user...")
+            admin_id = await self.create_user(admin_data)
+            print(f"✅ Admin user created with ID: {admin_id}")
+
+            return admin_id
+
+        except Exception as e:
+            print(f"❌ Failed to create admin user: {e}")
+            raise
+
+    async def create_user(self, user_data: Dict[str, Any]) -> int:
+        """Create new user with guaranteed success"""
+        try:
+            print(f"🔄 Creating user: {user_data['email']}")
+
+            # Ensure we have proper datetime object
+            if 'created_at' in user_data and isinstance(user_data['created_at'], datetime):
+                # Already a datetime object, good
+                pass
+            elif 'created_at' in user_data and isinstance(user_data['created_at'], str):
+                # Convert string to datetime
+                user_data['created_at'] = datetime.fromisoformat(user_data['created_at'].replace('Z', '+00:00'))
+            else:
+                # No created_at provided, use now
+                user_data['created_at'] = datetime.now()
+
+            # Insert user
+            user_id = await self.db.insert('users', user_data)
+            print(f"✅ User created with ID: {user_id}")
+
+            # Immediate verification
+            verify_user = await self.get_user_by_email(user_data['email'])
+            if verify_user:
+                print(f"✅ User creation verified: {verify_user['email']} (ID: {verify_user['id']})")
+                return user_id
+            else:
+                print(f"❌ USER CREATION FAILED: {user_data['email']} was not found after insertion!")
+                raise Exception("User creation failed - user not found after insert")
+
+        except Exception as e:
+            print(f"❌ create_user failed for {user_data['email']}: {e}")
+            raise
 
     # User methods
     async def get_user_by_email(self, email: str) -> Optional[Dict[str, Any]]:
         """Get user by email"""
-        return await self.db.fetch_one("SELECT * FROM users WHERE email = $1", email)
+        try:
+            user = await self.db.fetch_one("SELECT * FROM users WHERE email = $1", email)
+            if user:
+                print(f"✅ Found user by email: {email}")
+            else:
+                print(f"❌ No user found with email: {email}")
+            return user
+        except Exception as e:
+            print(f"❌ Error getting user by email {email}: {e}")
+            return None
 
     async def get_user_by_id(self, user_id: int) -> Optional[Dict[str, Any]]:
         """Get user by ID"""
-        return await self.db.fetch_one("SELECT * FROM users WHERE id = $1", user_id)
-
-    async def create_user(self, user_data: Dict[str, Any]) -> int:
-        """Create new user"""
-        return await self.db.insert('users', user_data)
+        try:
+            return await self.db.fetch_one("SELECT * FROM users WHERE id = $1", user_id)
+        except Exception as e:
+            print(f"Error getting user by ID {user_id}: {e}")
+            return None
 
     async def update_user(self, user_id: int, update_data: Dict[str, Any]) -> bool:
         """Update user"""
-        return await self.db.update('users', update_data, 'id = $1', user_id)
+        try:
+            # Ensure datetime fields are properly handled
+            processed_data = update_data.copy()
+            for key in ['created_at', 'updated_at', 'last_login']:
+                if key in processed_data and isinstance(processed_data[key], str):
+                    try:
+                        processed_data[key] = datetime.fromisoformat(processed_data[key].replace('Z', '+00:00'))
+                    except:
+                        pass
+
+            return await self.db.update('users', processed_data, 'id = $1', user_id)
+        except Exception as e:
+            print(f"Error updating user {user_id}: {e}")
+            return False
 
     async def get_all_users(self) -> List[Dict[str, Any]]:
         """Get all users"""
-        return await self.db.fetch_all(
-            "SELECT id, email, full_name, role, is_verified, created_at, last_login FROM users")
+        try:
+            users = await self.db.fetch_all(
+                "SELECT id, email, full_name, role, is_verified, created_at, last_login FROM users ORDER BY id"
+            )
+            print(f"📊 Retrieved {len(users)} users from database")
+            return users
+        except Exception as e:
+            print(f"Error getting all users: {e}")
+            return []
 
     # Analytics events methods
     async def create_analytics_event(self, event_data: Dict[str, Any]) -> int:
         """Create analytics event"""
-        return await self.db.insert('analytics_events', event_data)
+        try:
+            # Ensure timestamp is datetime object
+            if 'timestamp' in event_data and isinstance(event_data['timestamp'], str):
+                event_data['timestamp'] = datetime.fromisoformat(event_data['timestamp'].replace('Z', '+00:00'))
+            elif 'timestamp' not in event_data:
+                event_data['timestamp'] = datetime.now()
+
+            return await self.db.insert('analytics_events', event_data)
+        except Exception as e:
+            print(f"Error creating analytics event: {e}")
+            raise
 
     async def get_analytics_events(self, user_id: Optional[int] = None, limit: int = 100) -> List[Dict[str, Any]]:
         """Get analytics events"""
-        if user_id:
-            return await self.db.fetch_all(
-                "SELECT * FROM analytics_events WHERE user_id = $1 ORDER BY timestamp DESC LIMIT $2",
-                user_id, limit
-            )
-        else:
-            return await self.db.fetch_all(
-                "SELECT * FROM analytics_events ORDER BY timestamp DESC LIMIT $1",
-                limit
-            )
+        try:
+            if user_id:
+                return await self.db.fetch_all(
+                    "SELECT * FROM analytics_events WHERE user_id = $1 ORDER BY timestamp DESC LIMIT $2",
+                    user_id, limit
+                )
+            else:
+                return await self.db.fetch_all(
+                    "SELECT * FROM analytics_events ORDER BY timestamp DESC LIMIT $1",
+                    limit
+                )
+        except Exception as e:
+            print(f"Error getting analytics events: {e}")
+            return []
 
     # ICE initiatives methods
     async def create_ice_initiative(self, initiative_data: Dict[str, Any]) -> bool:
         """Create ICE initiative"""
         try:
+            # Ensure datetime fields are proper
+            for field in ['created_at', 'updated_at', 'due_date']:
+                if field in initiative_data and isinstance(initiative_data[field], str):
+                    initiative_data[field] = datetime.fromisoformat(initiative_data[field].replace('Z', '+00:00'))
+
             await self.db.insert('ice_initiatives', initiative_data)
             return True
         except Exception as e:
@@ -673,42 +829,66 @@ class DatabaseManager:
     async def get_ice_initiatives(self, user_id: Optional[int] = None, status: Optional[str] = None) -> List[
         Dict[str, Any]]:
         """Get ICE initiatives"""
-        query = "SELECT * FROM ice_initiatives WHERE 1=1"
-        params = []
+        try:
+            query = "SELECT * FROM ice_initiatives WHERE 1=1"
+            params = []
 
-        if user_id:
-            query += " AND (created_by = $1 OR assigned_to = $2)"
-            params.extend([user_id, user_id])
+            if user_id:
+                query += " AND (created_by = $1 OR assigned_to = $2)"
+                params.extend([user_id, user_id])
 
-        if status:
-            query += " AND status = $3"
-            params.append(status)
+            if status:
+                query += " AND status = $3"
+                params.append(status)
 
-        query += " ORDER BY ice_score DESC"
+            query += " ORDER BY ice_score DESC"
 
-        initiatives = await self.db.fetch_all(query, *params)
+            initiatives = await self.db.fetch_all(query, *params)
 
-        # Parse JSON fields
-        for initiative in initiatives:
-            if initiative.get('tags'):
-                initiative['tags'] = json.loads(initiative['tags'])
-            if initiative.get('metrics_affected'):
-                initiative['metrics_affected'] = json.loads(initiative['metrics_affected'])
+            # Parse JSON fields
+            for initiative in initiatives:
+                if initiative.get('tags'):
+                    try:
+                        initiative['tags'] = json.loads(initiative['tags'])
+                    except:
+                        initiative['tags'] = []
+                if initiative.get('metrics_affected'):
+                    try:
+                        initiative['metrics_affected'] = json.loads(initiative['metrics_affected'])
+                    except:
+                        initiative['metrics_affected'] = []
 
-        return initiatives
+            return initiatives
+        except Exception as e:
+            print(f"Error getting ICE initiatives: {e}")
+            return []
 
     async def update_ice_initiative(self, initiative_id: str, update_data: Dict[str, Any]) -> bool:
         """Update ICE initiative"""
-        return await self.db.update('ice_initiatives', update_data, 'id = $1', initiative_id)
+        try:
+            return await self.db.update('ice_initiatives', update_data, 'id = $1', initiative_id)
+        except Exception as e:
+            print(f"Error updating ICE initiative {initiative_id}: {e}")
+            return False
 
     async def delete_ice_initiative(self, initiative_id: str) -> bool:
         """Delete ICE initiative"""
-        return await self.db.delete('ice_initiatives', 'id = $1', initiative_id)
+        try:
+            return await self.db.delete('ice_initiatives', 'id = $1', initiative_id)
+        except Exception as e:
+            print(f"Error deleting ICE initiative {initiative_id}: {e}")
+            return False
 
     # User history methods
     async def create_user_history(self, history_data: Dict[str, Any]) -> bool:
         """Create user history record"""
         try:
+            # Ensure timestamp is datetime
+            if 'timestamp' in history_data and isinstance(history_data['timestamp'], str):
+                history_data['timestamp'] = datetime.fromisoformat(history_data['timestamp'].replace('Z', '+00:00'))
+            elif 'timestamp' not in history_data:
+                history_data['timestamp'] = datetime.now()
+
             await self.db.insert('user_history', history_data)
             return True
         except Exception as e:
@@ -717,213 +897,383 @@ class DatabaseManager:
 
     async def get_user_history(self, user_id: int, limit: int = 50) -> List[Dict[str, Any]]:
         """Get user history"""
-        history = await self.db.fetch_all(
-            "SELECT * FROM user_history WHERE user_id = $1 ORDER BY timestamp DESC LIMIT $2",
-            user_id, limit
-        )
+        try:
+            history = await self.db.fetch_all(
+                "SELECT * FROM user_history WHERE user_id = $1 ORDER BY timestamp DESC LIMIT $2",
+                user_id, limit
+            )
 
-        # Parse JSON fields
-        for record in history:
-            if record.get('metadata'):
-                record['metadata'] = json.loads(record['metadata'])
+            # Parse JSON fields
+            for record in history:
+                if record.get('metadata'):
+                    try:
+                        record['metadata'] = json.loads(record['metadata'])
+                    except:
+                        record['metadata'] = {}
 
-        return history
+            return history
+        except Exception as e:
+            print(f"Error getting user history for user {user_id}: {e}")
+            return []
 
     # Data sources methods
     async def create_data_source(self, source_data: Dict[str, Any]) -> int:
         """Create data source"""
-        return await self.db.insert('data_sources', source_data)
+        try:
+            if 'created_at' in source_data and isinstance(source_data['created_at'], str):
+                source_data['created_at'] = datetime.fromisoformat(source_data['created_at'].replace('Z', '+00:00'))
+            elif 'created_at' not in source_data:
+                source_data['created_at'] = datetime.now()
+
+            return await self.db.insert('data_sources', source_data)
+        except Exception as e:
+            print(f"Error creating data source: {e}")
+            raise
 
     async def get_data_sources(self, user_id: int) -> List[Dict[str, Any]]:
         """Get user's data sources"""
-        sources = await self.db.fetch_all(
-            "SELECT * FROM data_sources WHERE user_id = $1 ORDER BY created_at DESC",
-            user_id
-        )
+        try:
+            sources = await self.db.fetch_all(
+                "SELECT * FROM data_sources WHERE user_id = $1 ORDER BY created_at DESC",
+                user_id
+            )
 
-        # Remove sensitive data
-        for source in sources:
-            source.pop('password', None)
-            source.pop('api_key', None)
+            # Remove sensitive data
+            for source in sources:
+                source.pop('password', None)
+                source.pop('api_key', None)
 
-        return sources
+            return sources
+        except Exception as e:
+            print(f"Error getting data sources for user {user_id}: {e}")
+            return []
 
     async def get_data_source(self, source_id: int, user_id: int) -> Optional[Dict[str, Any]]:
         """Get specific data source"""
-        source = await self.db.fetch_one(
-            "SELECT * FROM data_sources WHERE id = $1 AND user_id = $2",
-            source_id, user_id
-        )
+        try:
+            source = await self.db.fetch_one(
+                "SELECT * FROM data_sources WHERE id = $1 AND user_id = $2",
+                source_id, user_id
+            )
 
-        if source:
-            source.pop('password', None)
-            source.pop('api_key', None)
+            if source:
+                source.pop('password', None)
+                source.pop('api_key', None)
 
-        return source
+            return source
+        except Exception as e:
+            print(f"Error getting data source {source_id} for user {user_id}: {e}")
+            return None
 
     # Real data config methods
     async def get_real_data_config(self) -> Dict[str, Any]:
         """Get real data configuration"""
-        config = await self.db.fetch_one("SELECT * FROM real_data_config WHERE id = 1")
-        if config:
-            if config.get('data_sources'):
-                config['data_sources'] = json.loads(config['data_sources'])
-            return config
-        return {'enabled': True, 'data_sources': [], 'primary_source': None}
+        try:
+            config = await self.db.fetch_one("SELECT * FROM real_data_config WHERE id = 1")
+            if config:
+                if config.get('data_sources'):
+                    try:
+                        config['data_sources'] = json.loads(config['data_sources'])
+                    except:
+                        config['data_sources'] = []
+                return config
+            return {'enabled': True, 'data_sources': [], 'primary_source': None}
+        except Exception as e:
+            print(f"Error getting real data config: {e}")
+            return {'enabled': True, 'data_sources': [], 'primary_source': None}
 
     async def update_real_data_config(self, config: Dict[str, Any]) -> bool:
         """Update real data configuration"""
-        update_data = {
-            'enabled': config.get('enabled', True),
-            'data_sources': json.dumps(config.get('data_sources', [])),
-            'primary_source': config.get('primary_source'),
-            'updated_at': datetime.now().isoformat()
-        }
-        return await self.db.update('real_data_config', update_data, 'id = 1')
+        try:
+            update_data = {
+                'enabled': config.get('enabled', True),
+                'data_sources': json.dumps(config.get('data_sources', [])),
+                'primary_source': config.get('primary_source'),
+                'updated_at': datetime.now()
+            }
+            return await self.db.update('real_data_config', update_data, 'id = 1')
+        except Exception as e:
+            print(f"Error updating real data config: {e}")
+            return False
 
     # A/B tests methods
     async def create_ab_test(self, test_data: Dict[str, Any]) -> int:
         """Create A/B test"""
-        return await self.db.insert('ab_tests', test_data)
+        try:
+            if 'created_at' in test_data and isinstance(test_data['created_at'], str):
+                test_data['created_at'] = datetime.fromisoformat(test_data['created_at'].replace('Z', '+00:00'))
+            elif 'created_at' not in test_data:
+                test_data['created_at'] = datetime.now()
+
+            return await self.db.insert('ab_tests', test_data)
+        except Exception as e:
+            print(f"Error creating A/B test: {e}")
+            raise
 
     async def get_ab_tests(self, user_id: int) -> List[Dict[str, Any]]:
         """Get user's A/B tests"""
-        tests = await self.db.fetch_all(
-            "SELECT * FROM ab_tests WHERE created_by = $1 ORDER BY created_at DESC",
-            user_id
-        )
+        try:
+            tests = await self.db.fetch_all(
+                "SELECT * FROM ab_tests WHERE created_by = $1 ORDER BY created_at DESC",
+                user_id
+            )
 
-        # Parse JSON fields
-        for test in tests:
-            if test.get('variants'):
-                test['variants'] = json.loads(test['variants'])
-            if test.get('target_audience'):
-                test['target_audience'] = json.loads(test['target_audience'])
-            if test.get('results'):
-                test['results'] = json.loads(test['results'])
+            # Parse JSON fields
+            for test in tests:
+                if test.get('variants'):
+                    try:
+                        test['variants'] = json.loads(test['variants'])
+                    except:
+                        test['variants'] = []
+                if test.get('target_audience'):
+                    try:
+                        test['target_audience'] = json.loads(test['target_audience'])
+                    except:
+                        test['target_audience'] = {}
+                if test.get('results'):
+                    try:
+                        test['results'] = json.loads(test['results'])
+                    except:
+                        test['results'] = {}
 
-        return tests
+            return tests
+        except Exception as e:
+            print(f"Error getting A/B tests for user {user_id}: {e}")
+            return []
 
     async def update_ab_test(self, test_id: int, update_data: Dict[str, Any]) -> bool:
         """Update A/B test"""
-        return await self.db.update('ab_tests', update_data, 'id = $1', test_id)
+        try:
+            return await self.db.update('ab_tests', update_data, 'id = $1', test_id)
+        except Exception as e:
+            print(f"Error updating A/B test {test_id}: {e}")
+            return False
 
     # Custom reports methods
     async def create_custom_report(self, report_data: Dict[str, Any]) -> int:
         """Create custom report"""
-        return await self.db.insert('custom_reports', report_data)
+        try:
+            if 'created_at' in report_data and isinstance(report_data['created_at'], str):
+                report_data['created_at'] = datetime.fromisoformat(report_data['created_at'].replace('Z', '+00:00'))
+            elif 'created_at' not in report_data:
+                report_data['created_at'] = datetime.now()
+
+            if 'updated_at' in report_data and isinstance(report_data['updated_at'], str):
+                report_data['updated_at'] = datetime.fromisoformat(report_data['updated_at'].replace('Z', '+00:00'))
+            else:
+                report_data['updated_at'] = datetime.now()
+
+            return await self.db.insert('custom_reports', report_data)
+        except Exception as e:
+            print(f"Error creating custom report: {e}")
+            raise
 
     async def get_custom_reports(self, user_id: int) -> List[Dict[str, Any]]:
         """Get user's custom reports"""
-        reports = await self.db.fetch_all(
-            "SELECT * FROM custom_reports WHERE user_id = $1 ORDER BY created_at DESC",
-            user_id
-        )
+        try:
+            reports = await self.db.fetch_all(
+                "SELECT * FROM custom_reports WHERE user_id = $1 ORDER BY created_at DESC",
+                user_id
+            )
 
-        # Parse JSON fields
-        for report in reports:
-            if report.get('metrics'):
-                report['metrics'] = json.loads(report['metrics'])
-            if report.get('filters'):
-                report['filters'] = json.loads(report['filters'])
+            # Parse JSON fields
+            for report in reports:
+                if report.get('metrics'):
+                    try:
+                        report['metrics'] = json.loads(report['metrics'])
+                    except:
+                        report['metrics'] = []
+                if report.get('filters'):
+                    try:
+                        report['filters'] = json.loads(report['filters'])
+                    except:
+                        report['filters'] = {}
 
-        return reports
+            return reports
+        except Exception as e:
+            print(f"Error getting custom reports for user {user_id}: {e}")
+            return []
 
     async def delete_custom_report(self, report_id: int, user_id: int) -> bool:
         """Delete custom report"""
-        return await self.db.delete('custom_reports', 'id = $1 AND user_id = $2', report_id, user_id)
+        try:
+            return await self.db.delete('custom_reports', 'id = $1 AND user_id = $2', report_id, user_id)
+        except Exception as e:
+            print(f"Error deleting custom report {report_id}: {e}")
+            return False
 
     # Export methods
     async def create_export(self, export_data: Dict[str, Any]) -> int:
         """Create export record"""
-        return await self.db.insert('data_exports', export_data)
+        try:
+            if 'created_at' in export_data and isinstance(export_data['created_at'], str):
+                export_data['created_at'] = datetime.fromisoformat(export_data['created_at'].replace('Z', '+00:00'))
+            elif 'created_at' not in export_data:
+                export_data['created_at'] = datetime.now()
+
+            return await self.db.insert('data_exports', export_data)
+        except Exception as e:
+            print(f"Error creating export: {e}")
+            raise
 
     async def get_exports(self, user_id: int) -> List[Dict[str, Any]]:
         """Get user's exports"""
-        return await self.db.fetch_all(
-            "SELECT * FROM data_exports WHERE user_id = $1 ORDER BY created_at DESC",
-            user_id
-        )
+        try:
+            return await self.db.fetch_all(
+                "SELECT * FROM data_exports WHERE user_id = $1 ORDER BY created_at DESC",
+                user_id
+            )
+        except Exception as e:
+            print(f"Error getting exports for user {user_id}: {e}")
+            return []
 
     # Cohort analyses methods
     async def create_cohort_analysis(self, analysis_data: Dict[str, Any]) -> int:
         """Create cohort analysis"""
-        return await self.db.insert('cohort_analyses', analysis_data)
+        try:
+            if 'created_at' in analysis_data and isinstance(analysis_data['created_at'], str):
+                analysis_data['created_at'] = datetime.fromisoformat(analysis_data['created_at'].replace('Z', '+00:00'))
+            elif 'created_at' not in analysis_data:
+                analysis_data['created_at'] = datetime.now()
+
+            return await self.db.insert('cohort_analyses', analysis_data)
+        except Exception as e:
+            print(f"Error creating cohort analysis: {e}")
+            raise
 
     async def get_cohort_analyses(self, user_id: int) -> List[Dict[str, Any]]:
         """Get user's cohort analyses"""
-        analyses = await self.db.fetch_all(
-            "SELECT * FROM cohort_analyses WHERE user_id = $1 ORDER BY created_at DESC",
-            user_id
-        )
+        try:
+            analyses = await self.db.fetch_all(
+                "SELECT * FROM cohort_analyses WHERE user_id = $1 ORDER BY created_at DESC",
+                user_id
+            )
 
-        for analysis in analyses:
-            if analysis.get('results'):
-                analysis['results'] = json.loads(analysis['results'])
+            for analysis in analyses:
+                if analysis.get('results'):
+                    try:
+                        analysis['results'] = json.loads(analysis['results'])
+                    except:
+                        analysis['results'] = {}
 
-        return analyses
+            return analyses
+        except Exception as e:
+            print(f"Error getting cohort analyses for user {user_id}: {e}")
+            return []
 
     # Funnel analyses methods
     async def create_funnel_analysis(self, analysis_data: Dict[str, Any]) -> int:
         """Create funnel analysis"""
-        return await self.db.insert('funnel_analyses', analysis_data)
+        try:
+            if 'created_at' in analysis_data and isinstance(analysis_data['created_at'], str):
+                analysis_data['created_at'] = datetime.fromisoformat(analysis_data['created_at'].replace('Z', '+00:00'))
+            elif 'created_at' not in analysis_data:
+                analysis_data['created_at'] = datetime.now()
+
+            return await self.db.insert('funnel_analyses', analysis_data)
+        except Exception as e:
+            print(f"Error creating funnel analysis: {e}")
+            raise
 
     async def get_funnel_analyses(self, user_id: int) -> List[Dict[str, Any]]:
         """Get user's funnel analyses"""
-        analyses = await self.db.fetch_all(
-            "SELECT * FROM funnel_analyses WHERE user_id = $1 ORDER BY created_at DESC",
-            user_id
-        )
+        try:
+            analyses = await self.db.fetch_all(
+                "SELECT * FROM funnel_analyses WHERE user_id = $1 ORDER BY created_at DESC",
+                user_id
+            )
 
-        for analysis in analyses:
-            if analysis.get('funnel_stages'):
-                analysis['funnel_stages'] = json.loads(analysis['funnel_stages'])
-            if analysis.get('results'):
-                analysis['results'] = json.loads(analysis['results'])
+            for analysis in analyses:
+                if analysis.get('funnel_stages'):
+                    try:
+                        analysis['funnel_stages'] = json.loads(analysis['funnel_stages'])
+                    except:
+                        analysis['funnel_stages'] = []
+                if analysis.get('results'):
+                    try:
+                        analysis['results'] = json.loads(analysis['results'])
+                    except:
+                        analysis['results'] = {}
 
-        return analyses
+            return analyses
+        except Exception as e:
+            print(f"Error getting funnel analyses for user {user_id}: {e}")
+            return []
 
     # Notion integration methods
     async def get_notion_integration(self, integration_id: int, user_id: int) -> Optional[Dict[str, Any]]:
         """Get specific Notion integration"""
-        return await self.db.fetch_one(
-            "SELECT * FROM notion_integrations WHERE id = $1 AND user_id = $2",
-            integration_id, user_id
-        )
+        try:
+            return await self.db.fetch_one(
+                "SELECT * FROM notion_integrations WHERE id = $1 AND user_id = $2",
+                integration_id, user_id
+            )
+        except Exception as e:
+            print(f"Error getting Notion integration {integration_id}: {e}")
+            return None
 
     async def update_notion_integration(self, integration_id: int, update_data: Dict[str, Any]) -> bool:
         """Update Notion integration"""
-        return await self.db.update('notion_integrations', update_data, 'id = $1', integration_id)
+        try:
+            return await self.db.update('notion_integrations', update_data, 'id = $1', integration_id)
+        except Exception as e:
+            print(f"Error updating Notion integration {integration_id}: {e}")
+            return False
 
     async def delete_notion_integration(self, integration_id: int, user_id: int) -> bool:
         """Delete Notion integration"""
-        return await self.db.delete('notion_integrations', 'id = $1 AND user_id = $2', integration_id, user_id)
+        try:
+            return await self.db.delete('notion_integrations', 'id = $1 AND user_id = $2', integration_id, user_id)
+        except Exception as e:
+            print(f"Error deleting Notion integration {integration_id}: {e}")
+            return False
 
     # AI recommendations methods
     async def create_ai_recommendation(self, recommendation_data: Dict[str, Any]) -> int:
         """Create AI recommendation"""
-        return await self.db.insert('ai_action_recommendations', recommendation_data)
+        try:
+            if 'generated_at' in recommendation_data and isinstance(recommendation_data['generated_at'], str):
+                recommendation_data['generated_at'] = datetime.fromisoformat(
+                    recommendation_data['generated_at'].replace('Z', '+00:00'))
+            elif 'generated_at' not in recommendation_data:
+                recommendation_data['generated_at'] = datetime.now()
+
+            return await self.db.insert('ai_action_recommendations', recommendation_data)
+        except Exception as e:
+            print(f"Error creating AI recommendation: {e}")
+            raise
 
     async def get_ai_recommendations(self, user_id: int) -> List[Dict[str, Any]]:
         """Get user's AI recommendations"""
-        recommendations = await self.db.fetch_all(
-            "SELECT * FROM ai_action_recommendations WHERE user_id = $1 ORDER BY generated_at DESC",
-            user_id
-        )
+        try:
+            recommendations = await self.db.fetch_all(
+                "SELECT * FROM ai_action_recommendations WHERE user_id = $1 ORDER BY generated_at DESC",
+                user_id
+            )
 
-        # Parse JSON fields
-        for rec in recommendations:
-            if rec.get('recommendation'):
-                rec['recommendation'] = json.loads(rec['recommendation'])
+            # Parse JSON fields
+            for rec in recommendations:
+                if rec.get('recommendation'):
+                    try:
+                        rec['recommendation'] = json.loads(rec['recommendation'])
+                    except:
+                        rec['recommendation'] = {}
 
-        return recommendations
+            return recommendations
+        except Exception as e:
+            print(f"Error getting AI recommendations for user {user_id}: {e}")
+            return []
 
     async def get_notion_integrations(self, user_id: int) -> List[Dict[str, Any]]:
         """Get user's Notion integrations"""
-        return await self.db.fetch_all(
-            "SELECT * FROM notion_integrations WHERE user_id = $1 ORDER BY created_at DESC",
-            user_id
-        )
+        try:
+            return await self.db.fetch_all(
+                "SELECT * FROM notion_integrations WHERE user_id = $1 ORDER BY created_at DESC",
+                user_id
+            )
+        except Exception as e:
+            print(f"Error getting Notion integrations for user {user_id}: {e}")
+            return []
 
     @classmethod
     async def get_instance(cls):
@@ -1937,6 +2287,98 @@ class AIActionRecommendationEngine:
             logger.error(f"Real AI recommendation error: {e}")
             return await self._generate_rule_based_recommendations(action_request)
 
+
+@app.post("/api/signup")
+async def signup(user_data: UserCreate, request: Request):
+    try:
+        db = await DatabaseManager.get_instance()
+
+        # Check if user already exists
+        existing_user = await db.get_user_by_email(user_data.email)
+        if existing_user:
+            raise HTTPException(status_code=400, detail="Email already registered")
+
+        # Create new user
+        hashed_password = AuthManager.hash_password(user_data.password)
+        new_user_data = {
+            'email': user_data.email,
+            'password_hash': hashed_password,
+            'full_name': user_data.full_name,
+            'role': user_data.role.value,
+            'is_verified': True,
+            'created_at': datetime.now().isoformat()
+        }
+
+        user_id = await db.create_user(new_user_data)
+
+        # Log user history
+        await UserHistoryManager.log_user_action(
+            user_id=user_id,
+            action_type=UserActionType.LOGIN,
+            description="New user signed up",
+            ip_address=request.client.host if request.client else None,
+            user_agent=request.headers.get('user-agent')
+        )
+
+        # Auto-login after signup
+        access_token, refresh_token = AuthManager.create_tokens({
+            'user_id': user_id,
+            'role': user_data.role.value
+        })
+
+        return JSONResponse(content={
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "token_type": "bearer",
+            "user_email": user_data.email,
+            "user_role": user_data.role.value,
+            "full_name": user_data.full_name,
+            "user_id": user_id,
+            "message": "User created successfully"
+        })
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Signup error: {e}")
+        raise HTTPException(status_code=500, detail="Signup failed")
+
+
+@app.post("/api/debug/check-user")
+async def debug_check_user(email: str):
+    """Debug endpoint to check if user exists"""
+    db = await DatabaseManager.get_instance()
+    user = await db.get_user_by_email(email)
+
+    if user:
+        return {
+            "exists": True,
+            "email": user['email'],
+            "user_id": user['id'],
+            "has_password_hash": bool(user.get('password_hash')),
+            "password_hash_length": len(user.get('password_hash', '')) if user.get('password_hash') else 0
+        }
+    else:
+        return {"exists": False}
+
+
+@app.post("/api/debug/verify-password")
+async def debug_verify_password(email: str, password: str):
+    """Debug endpoint to verify password"""
+    db = await DatabaseManager.get_instance()
+    user = await db.get_user_by_email(email)
+
+    if not user:
+        return {"error": "User not found"}
+
+    is_valid = AuthManager.verify_password(password, user['password_hash'])
+
+    return {
+        "user_exists": True,
+        "password_valid": is_valid,
+        "email": user['email'],
+        "stored_hash_prefix": user['password_hash'][:20] + "..." if user.get('password_hash') else "No hash"
+    }
 
 # Rice ICE Framework Manager
 class ICEFrameworkManager:
@@ -3215,6 +3657,77 @@ async def get_cohort_analysis_history(current_user: dict = Depends(get_current_u
         logger.error(f"Cohort history error: {e}")
         raise HTTPException(status_code=500, detail="Error fetching cohort analysis history")
 
+@app.post("/api/signup")
+async def signup(user_data: UserCreate, request: Request):
+    try:
+        db = await DatabaseManager.get_instance()
+
+        print(f"🔄 Signup attempt for: {user_data.email}")
+
+        # Check if user already exists
+        existing_user = await db.get_user_by_email(user_data.email)
+        if existing_user:
+            print(f"❌ User already exists: {user_data.email}")
+            raise HTTPException(status_code=400, detail="Email already registered")
+
+        # Create new user
+        hashed_password = AuthManager.hash_password(user_data.password)
+        new_user_data = {
+            'email': user_data.email,
+            'password_hash': hashed_password,
+            'full_name': user_data.full_name,
+            'role': user_data.role.value,
+            'is_verified': True,
+            'created_at': datetime.now().isoformat()
+        }
+
+        print(f"📝 Creating user with data: {new_user_data['email']}")
+
+        # Insert user and get the ID
+        user_id = await db.create_user(new_user_data)
+        print(f"✅ User created with ID: {user_id}")
+
+        # Verify the user was actually created
+        verify_user = await db.get_user_by_email(user_data.email)
+        if not verify_user:
+            print(f"❌ User creation verification failed for: {user_data.email}")
+            raise HTTPException(status_code=500, detail="User creation failed - please try again")
+
+        print(f"✅ User verified in database: {verify_user['email']}")
+
+        # Auto-login after signup
+        access_token, refresh_token = AuthManager.create_tokens({
+            'user_id': user_id,
+            'role': user_data.role.value
+        })
+
+        # Log user history
+        await UserHistoryManager.log_user_action(
+            user_id=user_id,
+            action_type=UserActionType.LOGIN,
+            description="New user signed up",
+            ip_address=request.client.host if request.client else None,
+            user_agent=request.headers.get('user-agent')
+        )
+
+        return JSONResponse(content={
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "token_type": "bearer",
+            "user_email": user_data.email,
+            "user_role": user_data.role.value,
+            "full_name": user_data.full_name,
+            "user_id": user_id,
+            "message": "User created successfully"
+        })
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Signup error: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Signup failed")
 
 # Funnel Drop-Off Engine Endpoints
 @app.post("/api/analytics/funnel-dropoff")
@@ -3463,18 +3976,30 @@ async def login(login_data: UserLogin, request: Request):
         user = await db.get_user_by_email(login_data.email)
 
         if not user:
-            logger.warning(f"Login failed: User not found - {login_data.email}")
-            raise HTTPException(status_code=400, detail="Invalid credentials")
+            # Log all existing users for debugging
+            all_users = await db.get_all_users()
+            logger.warning(f"Login failed: User {login_data.email} not found. Existing users: {[u['email'] for u in all_users]}")
+            raise HTTPException(
+                status_code=400,
+                detail="No account found with this email. Please sign up first."
+            )
 
-        # Debug logging
-        logger.info(f"Login attempt: {login_data.email}")
-        logger.info(f"User found: {user['email']}, ID: {user['id']}")
+        # Check if password hash exists
+        if not user.get('password_hash'):
+            logger.error(f"User has no password hash: {user['email']}")
+            raise HTTPException(
+                status_code=500,
+                detail="Account setup error. Please contact support."
+            )
 
         password_valid = AuthManager.verify_password(login_data.password, user['password_hash'])
 
         if not password_valid:
             logger.warning(f"Login failed: Invalid password for {login_data.email}")
-            raise HTTPException(status_code=400, detail="Invalid credentials")
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid password. Please check your credentials."
+            )
 
         # Update last login
         await db.update_user(user['id'], {'last_login': datetime.now().isoformat()})
@@ -3509,7 +4034,7 @@ async def login(login_data: UserLogin, request: Request):
         raise
     except Exception as e:
         logger.error(f"Login error: {e}")
-        raise HTTPException(status_code=500, detail="Login failed")
+        raise HTTPException(status_code=500, detail="Login failed due to server error")
 
 
 @app.post("/api/emergency-create-admin")
@@ -3828,6 +4353,100 @@ async def get_all_users(current_user: dict = Depends(get_current_user)):
     return users_data
 
 
+@app.get("/api/debug/check-database")
+async def debug_check_database():
+    """Debug endpoint to check database state"""
+    try:
+        db = await DatabaseManager.get_instance()
+
+        # Check various tables
+        users_count_result = await db.db.fetch_one("SELECT COUNT(*) as count FROM users")
+        users_count = users_count_result['count'] if users_count_result else 0
+
+        # Get all users
+        all_users = await db.db.fetch_all("SELECT id, email, role FROM users")
+
+        return {
+            "users_count": users_count,
+            "all_users": all_users,
+            "database_status": "connected"
+        }
+    except Exception as e:
+        return {"error": str(e), "database_status": "error"}
+
+
+@app.post("/api/debug/create-admin-now")
+async def debug_create_admin_now():
+    """Force create admin user now"""
+    try:
+        db = await DatabaseManager.get_instance()
+
+        # Check if admin already exists
+        admin_user = await db.get_user_by_email('admin@example.com')
+        if admin_user:
+            return {
+                "status": "exists",
+                "message": "Admin user already exists",
+                "user": {
+                    "id": admin_user['id'],
+                    "email": admin_user['email'],
+                    "role": admin_user['role']
+                }
+            }
+
+        # Create admin user
+        hashed_password = AuthManager.hash_password('admin123')
+        admin_data = {
+            'email': 'admin@example.com',
+            'password_hash': hashed_password,
+            'full_name': 'System Administrator',
+            'role': 'admin',
+            'is_verified': True,
+            'created_at': datetime.now().isoformat()
+        }
+
+        admin_id = await db.create_user(admin_data)
+
+        return {
+            "status": "created",
+            "message": "Admin user created successfully",
+            "user_id": admin_id,
+            "credentials": {
+                "email": "admin@example.com",
+                "password": "admin123"
+            }
+        }
+
+    except Exception as e:
+        return {"status": "error", "message": f"Failed to create admin: {str(e)}"}
+
+
+@app.get("/api/debug/check-tables")
+async def debug_check_tables():
+    """Check if all tables exist"""
+    try:
+        db = await DatabaseManager.get_instance()
+
+        tables = [
+            'users', 'analytics_events', 'ice_initiatives', 'user_history',
+            'data_sources', 'real_data_config', 'ab_tests', 'custom_reports',
+            'data_exports', 'cohort_analyses', 'funnel_analyses',
+            'ai_action_recommendations', 'notion_integrations'
+        ]
+
+        table_status = {}
+        for table in tables:
+            try:
+                result = await db.db.fetch_one(f"SELECT COUNT(*) as count FROM {table}")
+                table_status[table] = {"exists": True, "count": result['count']}
+            except Exception as e:
+                table_status[table] = {"exists": False, "error": str(e)}
+
+        return table_status
+
+    except Exception as e:
+        return {"error": str(e)}
+
 @app.post("/api/admin/users")
 async def create_user_admin(user_data: UserCreate, current_user: dict = Depends(get_current_user)):
     """Create user (admin only) - FIXED VERSION"""
@@ -3964,6 +4583,118 @@ async def delete_custom_report(report_id: int, current_user: dict = Depends(get_
         raise HTTPException(status_code=404, detail="Report not found")
 
 
+@app.get("/api/debug/database-state")
+async def debug_database_state():
+    """Comprehensive database state check"""
+    try:
+        db = await DatabaseManager.get_instance()
+
+        # Test basic connection
+        test_result = await db.db.fetch_one("SELECT 1 as test, NOW() as time")
+
+        # Check all tables
+        tables = ['users', 'analytics_events', 'ice_initiatives']
+        table_counts = {}
+
+        for table in tables:
+            try:
+                count_result = await db.db.fetch_one(f"SELECT COUNT(*) as count FROM {table}")
+                table_counts[table] = count_result['count']
+            except Exception as e:
+                table_counts[table] = f"Error: {str(e)}"
+
+        # Get all users with details
+        users = await db.db.fetch_all("SELECT id, email, role, created_at FROM users ORDER BY id")
+
+        return {
+            "database_connection": "✅ Working" if test_result else "❌ Failed",
+            "server_time": test_result['time'] if test_result else "Unknown",
+            "table_counts": table_counts,
+            "total_users": len(users),
+            "users": users,
+            "admin_exists": any(user['email'] == 'admin@example.com' for user in users)
+        }
+
+    except Exception as e:
+        return {"error": str(e), "type": type(e).__name__}
+
+
+@app.post("/api/debug/fix-now")
+async def debug_fix_now():
+    """Emergency fix - recreates everything"""
+    try:
+        db = await DatabaseManager.get_instance()
+
+        print("🚨 EMERGENCY DATABASE FIX STARTED...")
+
+        # Drop and recreate all tables
+        print("🔄 Recreating tables...")
+        await db.db._create_tables()
+
+        # Create admin user
+        print("🔄 Creating admin user...")
+        admin_id = await db._create_admin_user()
+
+        # Create test user
+        print("🔄 Creating test user...")
+        test_user_data = {
+            'email': 'test@example.com',
+            'password_hash': AuthManager.hash_password('test123'),
+            'full_name': 'Test User',
+            'role': 'viewer',
+            'is_verified': True,
+            'created_at': datetime.now()
+        }
+        test_id = await db.create_user(test_user_data)
+
+        print("✅ Emergency fix completed")
+
+        return {
+            "success": True,
+            "message": "Database completely reset and rebuilt",
+            "users_created": {
+                "admin": {"id": admin_id, "email": "admin@example.com", "password": "admin123"},
+                "test": {"id": test_id, "email": "test@example.com", "password": "test123"}
+            }
+        }
+
+    except Exception as e:
+        print(f"❌ Emergency fix failed: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.on_event("startup")
+async def startup_event():
+    """Enhanced startup with better error handling"""
+    try:
+        print("=" * 60)
+        print("🚀 STARTING AI ANALYTICS DASHBOARD v4.0")
+        print("=" * 60)
+
+        # Initialize database
+        db = await DatabaseManager.get_instance()
+
+        # Force verification
+        admin_user = await db.get_user_by_email('admin@example.com')
+        if admin_user:
+            print(f"✅ Admin user verified: {admin_user['email']} (ID: {admin_user['id']})")
+        else:
+            print("❌ CRITICAL: Admin user missing after initialization!")
+
+        # Show all users
+        all_users = await db.get_all_users()
+        print(f"📊 Total users in system: {len(all_users)}")
+        for user in all_users:
+            print(f"   👤 {user['id']}: {user['email']} ({user['role']})")
+
+        print("🎉 Startup completed successfully!")
+        print("=" * 60)
+
+    except Exception as e:
+        print(f"💥 STARTUP FAILED: {e}")
+        import traceback
+        traceback.print_exc()
+        raise
 # Page endpoints
 @app.get("/")
 async def index(request: Request):

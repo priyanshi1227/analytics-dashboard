@@ -525,8 +525,8 @@
                                 <div class="icon-fix"></div>
                             </div>
                         </div>
-                        <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-white mt-3">Account Created Successfully!</h3>
-                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                        <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-white mt-3" id="successTitle">Account Created Successfully!</h3>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-2" id="successMessage">
                             Your <span id="successRole">viewer</span> account has been created.
                             You will be redirected to the login page shortly.
                         </p>
@@ -644,7 +644,7 @@
             defaultOption.classList.add('selected');
         });
 
-        // Signup form handler - FIXED VERSION
+        // Signup form handler - FIXED VERSION (REAL API CALL)
         document.getElementById('signupForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -682,64 +682,92 @@
             loadingSpinner.classList.remove('hidden');
 
             try {
-                // Simulate API call with timeout
-                await new Promise((resolve, reject) => {
-                    setTimeout(() => {
-                        // Basic validation
-                        if (!email.includes('@')) {
-                            reject(new Error('Please enter a valid email address'));
-                            return;
-                        }
+                console.log('🔄 Making REAL API call to /api/signup');
 
-                        // Simulate successful registration 90% of the time
-                        if (Math.random() > 0.1) {
-                            resolve({
-                                success: true,
-                                message: 'Account created successfully',
-                                user: {
-                                    full_name: fullName,
-                                    email: email,
-                                    role: role
-                                }
-                            });
-                        } else {
-                            // Simulate random errors
-                            const errors = [
-                                'Email already registered',
-                                'Server error, please try again',
-                                'Invalid role selected'
-                            ];
-                            const randomError = errors[Math.floor(Math.random() * errors.length)];
-                            reject(new Error(randomError));
-                        }
-                    }, 1500);
+                // REAL API CALL - This sends data to your FastAPI backend
+                const response = await fetch('/api/signup', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: email,
+                        password: password,
+                        full_name: fullName,
+                        role: role
+                    })
                 });
 
-                // Success - show success modal
+                console.log('📡 Response status:', response.status);
+
+                const data = await response.json();
+                console.log('📦 Response data:', data);
+
+                if (!response.ok) {
+                    // Handle API errors
+                    let errorMessage = data.detail || 'Registration failed. Please try again.';
+
+                    if (response.status === 400) {
+                        if (errorMessage.includes('already registered')) {
+                            errorMessage = 'An account with this email already exists.';
+                        } else if (errorMessage.includes('password')) {
+                            errorMessage = 'Invalid password. Please try again.';
+                        }
+                    } else if (response.status === 500) {
+                        errorMessage = 'Server error. Please try again later.';
+                    }
+
+                    throw new Error(errorMessage);
+                }
+
+                // Success - handle both auto-login and manual login scenarios
                 loadingSpinner.classList.add('hidden');
                 document.getElementById('successRole').textContent = role;
-                document.getElementById('successModal').classList.remove('hidden');
 
-                // Store user data in localStorage for demo purposes
-                localStorage.setItem('demoUser', JSON.stringify({
-                    full_name: fullName,
-                    email: email,
-                    role: role,
-                    created_at: new Date().toISOString()
-                }));
+                // Check if we received tokens (auto-login) or just success message
+                if (data.access_token) {
+                    // Auto-login mode - store tokens and update success message
+                    localStorage.setItem('token', data.access_token);
+                    localStorage.setItem('refresh_token', data.refresh_token);
+                    localStorage.setItem('user', JSON.stringify({
+                        email: data.user_email,
+                        role: data.user_role,
+                        full_name: data.full_name,
+                        user_id: data.user_id
+                    }));
+
+                    document.getElementById('successTitle').textContent = 'Welcome to Your Dashboard!';
+                    document.getElementById('successMessage').innerHTML = `
+                        Your <strong>${role}</strong> account has been created and you're automatically logged in.
+                        You will be redirected to your dashboard shortly.
+                    `;
+                    document.getElementById('okButton').textContent = 'Go to Dashboard';
+
+                    console.log('✅ Auto-login: User logged in automatically');
+                } else {
+                    // Manual login mode - show standard success message
+                    document.getElementById('successTitle').textContent = 'Account Created Successfully!';
+                    document.getElementById('successMessage').innerHTML = `
+                        Your <strong>${role}</strong> account has been created successfully.
+                        Please sign in with your credentials.
+                    `;
+                    document.getElementById('okButton').textContent = 'Continue to Login';
+
+                    console.log('✅ Manual login: User needs to sign in');
+                }
+
+                document.getElementById('successModal').classList.remove('hidden');
+                toast.show('Account created successfully!', 'success');
 
             } catch (error) {
-                console.error('Signup error:', error);
+                console.error('❌ Signup error:', error);
+
                 let errorMessage = 'Registration failed. Please try again.';
 
-                if (error.message.includes('already registered')) {
-                    errorMessage = 'An account with this email already exists.';
-                } else if (error.message.includes('valid email')) {
-                    errorMessage = 'Please enter a valid email address.';
-                } else if (error.message.includes('role')) {
-                    errorMessage = 'Invalid role selected. Please choose a valid role.';
-                } else {
+                if (error.message) {
                     errorMessage = error.message;
+                } else if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                    errorMessage = 'Network error. Please check your connection and try again.';
                 }
 
                 toast.show(errorMessage, 'error');
@@ -759,8 +787,16 @@
         // Success modal handler
         document.getElementById('okButton').addEventListener('click', function() {
             document.getElementById('successModal').classList.add('hidden');
-            // Redirect to login page
-            window.location.href = '/login';
+
+            // Check if user is already logged in (has tokens)
+            const token = localStorage.getItem('token');
+            if (token) {
+                // Redirect to dashboard if logged in
+                window.location.href = '/dashboard';
+            } else {
+                // Redirect to login page
+                window.location.href = '/login';
+            }
         });
 
         // Password confirmation validation
@@ -844,49 +880,45 @@
             return indicator;
         }
 
-        // Role tooltip information
-        const rolePermissions = {
-            admin: {
-                description: "Full system administrator with complete access to all features and user management.",
-                features: [
-                    "User account management",
-                    "System configuration",
-                    "All analytics features",
-                    "Data source management",
-                    "Role assignments"
-                ]
-            },
-            manager: {
-                description: "Team manager with advanced analytics and reporting capabilities.",
-                features: [
-                    "Team management",
-                    "Advanced reporting",
-                    "Data configuration",
-                    "Export capabilities",
-                    "Custom dashboards"
-                ]
-            },
-            analyst: {
-                description: "Data analyst with tools for deep analysis and custom reporting.",
-                features: [
-                    "Data analysis tools",
-                    "Custom reports",
-                    "Export capabilities",
-                    "Advanced visualizations",
-                    "Statistical analysis"
-                ]
-            },
-            viewer: {
-                description: "Read-only access to view dashboards and basic reports.",
-                features: [
-                    "View dashboards",
-                    "Basic reports",
-                    "Read-only access",
-                    "Export basic data",
-                    "No editing rights"
-                ]
+        // Debug helper - check current users
+        window.debugCheckUsers = async function() {
+            try {
+                const response = await fetch('/api/debug/all-users');
+                const data = await response.json();
+                console.log('👥 Current users in database:', data);
+                return data;
+            } catch (error) {
+                console.error('Debug error:', error);
             }
         };
+
+        // Debug helper - check database state
+        window.debugCheckDatabase = async function() {
+            try {
+                const response = await fetch('/api/debug/database-state');
+                const data = await response.json();
+                console.log('🗄️ Database state:', data);
+                return data;
+            } catch (error) {
+                console.error('Debug error:', error);
+            }
+        };
+
+        // Add debug buttons for testing (remove in production)
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add debug button to check current state
+            const debugDiv = document.createElement('div');
+            debugDiv.className = 'fixed bottom-4 left-4 space-x-2 z-40';
+            debugDiv.innerHTML = `
+                <button onclick="debugCheckUsers()" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded text-xs">
+                    👥 Check Users
+                </button>
+                <button onclick="debugCheckDatabase()" class="bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded text-xs">
+                    🗄️ Check DB
+                </button>
+            `;
+            document.body.appendChild(debugDiv);
+        });
     </script>
 </body>
 </html>
