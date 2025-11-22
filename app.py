@@ -397,7 +397,6 @@ class PostgreSQLManager:
 
     async def insert(self, table: str, data: Dict[str, Any]) -> int:
         """Insert data and return ID"""
-        # Convert datetime strings to datetime objects for PostgreSQL
         processed_data = {}
         for key, value in data.items():
             if isinstance(value, str) and 'created_at' in key or 'updated_at' in key or 'timestamp' in key:
@@ -555,7 +554,6 @@ class DatabaseManager:
 
                 except Exception as e:
                     logger.error(f"Error generating sample data: {e}")
-                    # Don't raise, just log - we want the app to start even if sample data fails
 
             # Sample ICE initiatives
             sample_initiatives = [
@@ -859,7 +857,6 @@ class DatabaseManager:
             user_id
         )
 
-        # Parse JSON fields
         for analysis in analyses:
             if analysis.get('results'):
                 analysis['results'] = json.loads(analysis['results'])
@@ -878,7 +875,6 @@ class DatabaseManager:
             user_id
         )
 
-        # Parse JSON fields
         for analysis in analyses:
             if analysis.get('funnel_stages'):
                 analysis['funnel_stages'] = json.loads(analysis['funnel_stages'])
@@ -952,7 +948,6 @@ app.add_middleware(
 )
 
 
-# Role Enum
 class UserRole(str, Enum):
     ADMIN = "admin"
     MANAGER = "manager"
@@ -960,7 +955,6 @@ class UserRole(str, Enum):
     VIEWER = "viewer"
 
 
-# A/B Test Status
 class ABTestStatus(str, Enum):
     DRAFT = "draft"
     RUNNING = "running"
@@ -968,7 +962,6 @@ class ABTestStatus(str, Enum):
     COMPLETED = "completed"
 
 
-# Data Source Types
 class DataSourceType(str, Enum):
     POSTGRESQL = "postgresql"
     MYSQL = "mysql"
@@ -979,7 +972,6 @@ class DataSourceType(str, Enum):
     STRIPE = "stripe"
 
 
-# Rice ICE Framework Components
 class ICEPriority(str, Enum):
     HIGH = "high"
     MEDIUM = "medium"
@@ -1040,7 +1032,6 @@ class ICEInitiativeUpdate(BaseModel):
     estimated_effort_days: Optional[int] = None
 
 
-# User History Components
 class UserActionType(str, Enum):
     LOGIN = "login"
     LOGOUT = "logout"
@@ -1065,7 +1056,6 @@ class UserHistoryRecord(BaseModel):
     user_agent: Optional[str] = None
 
 
-# NEW: Cohort Analysis Models
 class CohortType(str, Enum):
     WEEKLY = "weekly"
     MONTHLY = "monthly"
@@ -1078,7 +1068,6 @@ class CohortAnalysisRequest(BaseModel):
     period_count: int = 12
 
 
-# NEW: Funnel Drop-Off Models
 class FunnelDropOffRequest(BaseModel):
     funnel_stages: List[str]
     date_range: Dict[str, str] = {}
@@ -1095,7 +1084,6 @@ class DropOffRecommendation(BaseModel):
     priority: str
 
 
-# NEW: AI Action Recommendation Models
 class AIActionRecommendation(BaseModel):
     id: str
     title: str
@@ -1261,7 +1249,7 @@ class AuthManager:
             return None
 
 
-# NEW: Cohort Analysis Manager
+#  Cohort Analysis Manager
 class CohortAnalysisManager:
     @staticmethod
     async def analyze_cohorts(cohort_request: CohortAnalysisRequest) -> Dict[str, Any]:
@@ -1343,14 +1331,12 @@ class CohortAnalysisManager:
         if not cohort_data:
             return {}
 
-        # Calculate average retention rates
         retention_rates = []
         for cohort in cohort_data:
             for period in cohort['periods']:
-                if period['period'] > 0:  # Skip period 0 (100% retention)
+                if period['period'] > 0:
                     retention_rates.append(period['value'])
 
-        # Calculate cohort health metrics
         latest_cohort = cohort_data[-1]
         latest_retention = latest_cohort['periods'][1]['value'] if len(latest_cohort['periods']) > 1 else 0
 
@@ -1368,9 +1354,8 @@ class CohortAnalysisManager:
         if not cohort_data or len(cohort_data) < 2:
             return 0.0
 
-        # Simple health calculation based on retention trends
         recent_retention = []
-        for cohort in cohort_data[-3:]:  # Last 3 cohorts
+        for cohort in cohort_data[-3:]:
             if len(cohort['periods']) > 1:
                 recent_retention.append(cohort['periods'][1]['value'])
 
@@ -1379,7 +1364,6 @@ class CohortAnalysisManager:
 
         avg_retention = np.mean(recent_retention)
 
-        # Score based on retention rate (0-100 scale)
         health_score = min(100, max(0, avg_retention * 1.2))
 
         return round(health_score, 1)
@@ -1461,7 +1445,7 @@ class CohortAnalysisManager:
     class CohortAnalysisManager:
         @staticmethod
         async def _generate_weekly_cohorts(period_count: int, metric: str) -> List[Dict[str, Any]]:
-            """Generate weekly cohort data - FIXED"""
+            """Generate weekly cohort data """
             cohorts = []
             base_date = datetime.now() - timedelta(weeks=period_count)
 
@@ -1470,15 +1454,14 @@ class CohortAnalysisManager:
                 cohort_size = random.randint(800, 1200)
 
                 periods = []
-                for j in range(period_count - i):  # FIX: Only generate periods that exist
+                for j in range(period_count - i):
                     if j == 0:
                         if metric == 'retention':
-                            value = 100.0  # First period always 100%
+                            value = 100.0
                         else:
                             value = cohort_size
                     else:
                         if metric == 'retention':
-                            # More realistic retention decay
                             decay = 0.85 ** j  # 15% decay per period
                             noise = random.uniform(0.95, 1.05)
                             value = max(5, min(100, (100 * decay * noise)))
@@ -1505,7 +1488,7 @@ class CohortAnalysisManager:
 
         @staticmethod
         async def _generate_monthly_cohorts(period_count: int, metric: str) -> List[Dict[str, Any]]:
-            """Generate monthly cohort data - FIXED"""
+            """Generate monthly cohort data """
             cohorts = []
             base_date = datetime.now().replace(day=1) - timedelta(days=30 * period_count)
 
@@ -1514,7 +1497,7 @@ class CohortAnalysisManager:
                 cohort_size = random.randint(2000, 3500)
 
                 periods = []
-                for j in range(period_count - i):  # FIX: Only generate existing periods
+                for j in range(period_count - i):
                     if j == 0:
                         if metric == 'retention':
                             value = 100.0
@@ -1522,7 +1505,7 @@ class CohortAnalysisManager:
                             value = cohort_size
                     else:
                         if metric == 'retention':
-                            decay = 0.78 ** j  # 22% monthly decay
+                            decay = 0.78 ** j
                             noise = random.uniform(0.92, 1.08)
                             value = max(10, min(100, (100 * decay * noise)))
                         else:
@@ -1568,7 +1551,6 @@ class CohortAnalysisManager:
                         'priority': 'high'
                     })
 
-        # Check for consistent patterns
         if len(cohort_data) >= 4:
             retention_values = []
             for cohort in cohort_data[-4:]:
@@ -1577,7 +1559,7 @@ class CohortAnalysisManager:
 
             if len(retention_values) >= 3:
                 variance = np.var(retention_values)
-                if variance < 25:  # Low variance indicates consistency
+                if variance < 25:
                     recommendations.append({
                         'type': 'positive_pattern',
                         'title': 'Stable Performance',
@@ -1589,7 +1571,7 @@ class CohortAnalysisManager:
         return recommendations
 
 
-# NEW: Funnel Drop-Off Engine
+#  Funnel Drop-Off Engine
 class FunnelDropOffEngine:
     @staticmethod
     async def analyze_funnel_dropoff(funnel_request: FunnelDropOffRequest) -> Dict[str, Any]:
@@ -1631,26 +1613,23 @@ class FunnelDropOffEngine:
             if not stages:
                 return []
 
-            # More realistic conversion rates based on funnel length
-            if len(stages) == 3:  # Short funnel (e.g., Signup → Activation → Purchase)
+            if len(stages) == 3:
                 base_rates = [100, 65, 35]
-            elif len(stages) == 4:  # Medium funnel
+            elif len(stages) == 4:
                 base_rates = [100, 70, 45, 25]
-            elif len(stages) == 5:  # Standard funnel
+            elif len(stages) == 5:
                 base_rates = [100, 75, 50, 35, 20]
-            elif len(stages) == 6:  # Long funnel
+            elif len(stages) == 6:
                 base_rates = [100, 80, 60, 45, 30, 18]
             else:
-                # Dynamic calculation for custom funnel lengths
                 base_rates = [100]
                 for i in range(1, len(stages)):
                     prev_rate = base_rates[-1]
-                    # Progressive drop-off (more drop-off in later stages)
                     drop_off = max(15, min(40, 20 + (i * 5)))
                     base_rates.append(max(5, prev_rate - drop_off))
 
             # Add some randomness but keep trends consistent
-            starting_users = 10000  # More realistic starting point
+            starting_users = 10000
 
             funnel_data = []
             previous_users = starting_users
@@ -1737,7 +1716,7 @@ class FunnelDropOffEngine:
             drop_off_rate = from_stage['conversion_rate'] - to_stage['conversion_rate']
             users_lost = from_stage['users'] - to_stage['users']
 
-            if drop_off_rate > 15:  # Significant drop-off
+            if drop_off_rate > 15:
                 recommendation = await FunnelDropOffEngine._create_stage_recommendation(
                     from_stage['stage'], to_stage['stage'], drop_off_rate, users_lost
                 )
@@ -1818,10 +1797,9 @@ class FunnelDropOffEngine:
             if drop_off > max_drop_off:
                 max_drop_off = drop_off
 
-        # Health score calculation (0-100)
         # Based on total conversion and maximum drop-off
-        conversion_score = total_conversion * 0.8  # 80% weight to final conversion
-        drop_off_penalty = max(0, (max_drop_off - 15) * 2)  # Penalty for high drop-offs
+        conversion_score = total_conversion * 0.8
+        drop_off_penalty = max(0, (max_drop_off - 15) * 2)
 
         health_score = max(0, conversion_score - drop_off_penalty)
 
@@ -1849,7 +1827,7 @@ class FunnelDropOffEngine:
         }
 
 
-# NEW: AI Action Recommendation Engine
+# AI Action Recommendation Engine
 class AIActionRecommendationEngine:
     def __init__(self):
         self.ml_model = None
@@ -1858,7 +1836,7 @@ class AIActionRecommendationEngine:
     def _load_ml_model(self):
         """Load pre-trained ML model for recommendations"""
         try:
-            # In production, load a real ML model
+
             # For now, we'll use rule-based + simple ML
             logger.info("ML model placeholder loaded - using enhanced rule-based recommendations")
 
@@ -1869,7 +1847,6 @@ class AIActionRecommendationEngine:
         """Generate AI-powered recommendations"""
         try:
             # For demo purposes, generate sample recommendations
-            # In production, this would use real ML models
             recommendations = await self._generate_demo_recommendations(action_request)
 
             return {
@@ -2116,11 +2093,9 @@ class UserHistoryManager:
         db = await DatabaseManager.get_instance()
         user_history = await db.get_user_history(user_id, limit=1000)
 
-        # Last 7 days activity
         week_ago = datetime.now() - timedelta(days=7)
         recent_activity = [record for record in user_history if datetime.fromisoformat(record['timestamp']) >= week_ago]
 
-        # Activity by type
         activity_by_type = {}
         for record in recent_activity:
             action_type = record['action_type']
@@ -2147,7 +2122,7 @@ class UserHistoryManager:
         return "No activity"
 
 
-# Enhanced Analytics Manager with Demo Data Only
+# Analytics Manager with Demo Data Only
 class AnalyticsManager:
     @staticmethod
     async def get_dau_mau_data(days: int = 30) -> Dict[str, Any]:
@@ -2840,7 +2815,6 @@ class AnomalyDetectionManager:
         dates = [point['date'] for point in data]
         values = [point['value'] for point in data]
 
-        # Create anomaly_values array where non-anomalies are null
         anomaly_values = []
         for point in data:
             if point['date'] in anomalies:
@@ -3122,7 +3096,7 @@ class NotionIntegrationManager:
             return {'success': False, 'message': f'❌ Error checking integration status: {str(e)}'}
 
 
-# FIXED: Dependency to get current user
+#  Dependency to get current user
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     if not credentials:
         raise HTTPException(
@@ -3141,7 +3115,6 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # Check if it's an access token
     if payload.get('type') != 'access':
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -3149,7 +3122,6 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # Get user from database
     db = await DatabaseManager.get_instance()
     user_id = payload.get('user_id')
 
@@ -3202,7 +3174,7 @@ async def verify_admin():
             "status": "error",
             "message": "Admin user not found. Please restart the server."
         }
-# NEW: Cohort Analysis Endpoints
+#  Cohort Analysis Endpoints
 @app.post("/api/analytics/cohort-analysis")
 async def analyze_cohorts(
         cohort_request: CohortAnalysisRequest,
@@ -3244,7 +3216,7 @@ async def get_cohort_analysis_history(current_user: dict = Depends(get_current_u
         raise HTTPException(status_code=500, detail="Error fetching cohort analysis history")
 
 
-# NEW: Funnel Drop-Off Engine Endpoints
+# Funnel Drop-Off Engine Endpoints
 @app.post("/api/analytics/funnel-dropoff")
 async def analyze_funnel_dropoff(
         funnel_request: FunnelDropOffRequest,
@@ -3284,7 +3256,7 @@ async def get_funnel_analysis_history(current_user: dict = Depends(get_current_u
         raise HTTPException(status_code=500, detail="Error fetching funnel analysis history")
 
 
-# NEW: AI Action Recommendation Engine Endpoints
+# AI Action Recommendation Engine Endpoints
 @app.post("/api/ai/recommendations")
 async def get_ai_action_recommendations(
         action_request: AIActionRequest,
@@ -4150,18 +4122,18 @@ if __name__ == "__main__":
     import uvicorn
 
     print("=" * 80)
-    print("🚀 AI-Powered Analytics Dashboard v4.0 - PostgreSQL Edition")
+    print(" AI-Powered Analytics Dashboard v4.0 - PostgreSQL Edition")
     print("=" * 80)
-    print("✅ PRODUCTION READY FEATURES:")
+    print(" PRODUCTION READY FEATURES:")
     print("  • PostgreSQL Database - Enterprise-grade data storage")
     print("  • All advanced analytics features")
     print("  • Demo data integration (no external dependencies)")
     print("  • User management system")
     print("  • DEMO WORKING NOTION INTEGRATION (No API calls)")
     print("")
-    print("🌐 Starting server on http://localhost:8000")
-    print("💾 Database: PostgreSQL")
-    print("📚 Notion Integration: Demo Mode - No API keys needed")
+    print(" Starting server on http://localhost:8000")
+    print(" Database: PostgreSQL")
+    print(" Notion Integration: Demo Mode - No API keys needed")
     print("=" * 80)
 
     uvicorn.run(app, host="0.0.0.0", port=8000)
